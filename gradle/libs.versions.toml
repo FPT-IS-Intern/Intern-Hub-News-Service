@@ -1,0 +1,76 @@
+[versions]
+spring-boot = "4.0.3"
+dependency-management = "1.1.7"
+jib = "3.5.3"
+lombok = "1.18.42"
+lombok-mapstruct-binding = "0.2.0"
+postgres = "42.7.9"
+mapstruct = "1.7.0.Beta1"
+common-library = "2.1.3"
+security-starter = "1.1.0"
+feign-version = "5.0.1"
+springDoc = "3.0.1"
+audit-library = "1.0.0"
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+dependency-management = { id = "io.spring.dependency-management", version.ref = "dependency-management" }
+jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
+
+[libraries]
+# Spring Boot Starters
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }
+custom-security-starter = { module = "com.github.FPT-IS-Intern:Intern-Hub-Security-Starter", version.ref = "security-starter" }
+
+spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
+spring-boot-starter-feign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign", version.ref = "feign-version" }
+openapi-doc = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springDoc" }
+
+# Database
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
+
+# Liquibase (uses Spring Boot managed version)
+spring-boot-starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liquibase" }
+
+# Lombok
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombok-mapstruct-binding" }
+
+# MapStruct
+mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
+mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
+
+# Custom Libraries
+common-library = { module = "com.github.FPT-IS-Intern:Intern-Hub-Common-Library", version.ref = "common-library" }
+security-starter = { module = "com.github.FPT-IS-Intern:Intern-Hub-Security-Starter", version.ref = "security-starter" }
+audit-library = { module = "com.github.FPT-IS-Intern:Intern-Hub-Audit-Client", version.ref = "audit-library" }
+
+# Spring Boot Redis
+spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+
+[bundles]
+# Spring Boot bundles
+spring-boot-all = [
+    "spring-boot-starter-web",
+    "spring-boot-starter-validation"
+]
+
+spring-boot-database = [
+    "spring-boot-starter-data-jpa",
+    "postgresql",
+    "spring-boot-starter-liquibase"
+]
+
+# Custom Libraries bundle
+custom-libraries = [
+    "common-library",
+    "security-starter",
+    "audit-library"
+]
+
+
+

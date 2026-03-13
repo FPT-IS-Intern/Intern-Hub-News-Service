@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-resource-table
+      author: system
+      changes:
+        - createTable:
+            tableName: resource
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: varchar(255)
+              - column:
+                  name: status
+                  type: varchar(16)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: bigint
+              - column:
+                  name: updated_at
+                  type: bigint
+              - column:
+                  name: created_by
+                  type: bigint
+              - column:
+                  name: updated_by
+                  type: bigint
+
+  - changeSet:
+      id: 001-create-resource-indexes
+      author: system
+      changes:
+        - createIndex:
+            indexName: idx_resource_code
+            tableName: resource
+            unique: true
+            columns:
+              - column:
+                  name: code
+        - createIndex:
+            indexName: idx_resource_status
+            tableName: resource
+            columns:
+              - column:
+                  name: status
