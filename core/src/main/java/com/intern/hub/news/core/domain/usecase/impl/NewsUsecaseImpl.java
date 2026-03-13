@@ -1,12 +1,14 @@
 package com.intern.hub.news.core.domain.usecase.impl;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.intern.hub.news.core.domain.model.NewsModel;
 import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.core.domain.usecase.NewsUsecase;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -18,14 +20,15 @@ public class NewsUsecaseImpl implements NewsUsecase {
   private final NewsRepository newsRepository;
 
   @Override
-  public NewsModel create(String title, String body, String thumbnail, Long topicId, boolean featured) {
-    validateInput(title, body, topicId);
+  public NewsModel create(String title, String body, String thumbnail, Long topicId, Long statusId, boolean featured) {
+    validateInput(title, body);
     long now = System.currentTimeMillis();
     NewsModel newsModel = new NewsModel();
     newsModel.setTitle(title);
     newsModel.setBody(body);
     newsModel.setThumbnail(thumbnail);
-    newsModel.setTopicId(topicId);
+    newsModel.setTopicId(topicId); // topicId có thể null
+    newsModel.setStatusId(statusId);
     newsModel.setFeatured(featured);
     newsModel.setCreatedAt(now);
     newsModel.setUpdatedAt(now);
@@ -34,7 +37,7 @@ public class NewsUsecaseImpl implements NewsUsecase {
 
   @Override
   public NewsModel update(Long id, String title, String body, Long topicId, boolean featured) {
-    validateInput(title, body, topicId);
+    validateInput(title, body);
     NewsModel existing = getById(id);
     NewsModel updateModel = new NewsModel();
     updateModel.setId(existing.getId());
@@ -69,6 +72,14 @@ public class NewsUsecaseImpl implements NewsUsecase {
   }
 
   @Override
+  public List<NewsModel> getAllNewsIsFeatured() {
+    return this.getAll().stream()
+        .filter(NewsModel::isFeatured)
+        .sorted((a, b) -> Long.compare(b.getUpdatedAt(), a.getUpdatedAt()))
+        .toList();
+  }
+
+  @Override
   public void delete(Long id) {
     if (!newsRepository.existsById(id)) {
       throw new IllegalArgumentException("News not found with id: " + id);
@@ -76,16 +87,12 @@ public class NewsUsecaseImpl implements NewsUsecase {
     newsRepository.deleteById(id);
   }
 
-  private void validateInput(String title, String body, Long topicId) {
+  private void validateInput(String title, String body) {
     if (title == null || title.isBlank()) {
       throw new IllegalArgumentException("Title is required");
     }
     if (body == null || body.isBlank()) {
       throw new IllegalArgumentException("Body is required");
     }
-    if (topicId == null || topicId <= 0) {
-      throw new IllegalArgumentException("Topic id is required");
-    }
   }
 }
-

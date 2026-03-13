@@ -7,7 +7,7 @@ import com.intern.hub.news.infra.persistence.entity.NewsTopics;
 import org.springframework.stereotype.Component;
 
 @Component
-public class NewsMapper {
+public class NewsEntityMapper {
 
   public NewsModel toModel(News entity) {
     NewsModel newsModel = new NewsModel();
@@ -26,12 +26,18 @@ public class NewsMapper {
   }
 
   public News toEntity(NewsModel model) {
-    var status = new NewsStatuses();
-    status.setName(model.getStatus());
+    NewsStatuses status = null;
+    if (model.getStatusId() != null) {
+      status = new NewsStatuses();
+      status.setId(model.getStatusId());
+    }
 
-    var topic = new NewsTopics();
-    topic.setId(model.getTopicId());
-    topic.setName(model.getTopicName());
+    NewsTopics topic = null;
+    if (model.getTopicId() != null) {
+      topic = new NewsTopics();
+      topic.setId(model.getTopicId());
+      topic.setName(model.getTopicName());
+    }
 
     News entity = new News();
     entity.setId(model.getId());
@@ -40,6 +46,9 @@ public class NewsMapper {
     entity.setBody(model.getBody());
     entity.setCreatedAt(model.getCreatedAt());
     entity.setUpdatedAt(model.getUpdatedAt());
+    entity.setStatus(status);
+    entity.setTopic(topic);
+    entity.setFeatured(model.isFeatured());
     return entity;
   }
 }

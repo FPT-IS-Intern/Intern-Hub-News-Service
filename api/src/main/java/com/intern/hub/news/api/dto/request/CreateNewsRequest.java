@@ -24,9 +24,12 @@ public class CreateNewsRequest {
 
   private String thumbnail;
 
-  @NotNull
-  @Positive
-  private Long topicId;
+   // topicId is optional, can be null
+   private Long topicId;
+
+   @NotNull
+   @Positive
+   private Long statusId;
 
   @NotNull
   private Boolean featured;

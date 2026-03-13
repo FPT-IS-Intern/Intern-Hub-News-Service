@@ -14,8 +14,8 @@ public class NewsResponse {
   private Long id;
   private String title;
   private String body;
-  private Long topicId;
   private String topicName;
+  private String thumbNail;
   private String status;
   private boolean featured;
   private Long createdAt;

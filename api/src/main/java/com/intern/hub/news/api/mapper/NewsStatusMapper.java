@@ -2,9 +2,10 @@ package com.intern.hub.news.api.mapper;
 
 import com.intern.hub.news.api.dto.response.NewsStatusResponse;
 import com.intern.hub.news.core.domain.model.NewsStatusModel;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class NewsStatusMapper {
-    private NewsStatusMapper() {}
 
     public static NewsStatusResponse toResponse(NewsStatusModel model) {
         return new NewsStatusResponse(
@@ -24,4 +25,3 @@ public class NewsStatusMapper {
         return model;
     }
 }
-

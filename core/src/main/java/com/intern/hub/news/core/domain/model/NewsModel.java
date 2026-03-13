@@ -18,6 +18,7 @@ public class NewsModel {
   private Long topicId;
   private String topicName;
   private String status;
+  private Long statusId;
   private boolean featured;
   private Long createdAt;
   private Long updatedAt;

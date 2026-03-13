@@ -38,12 +38,12 @@ databaseChangeLog:
                     references: news_topics(id)
               - column:
                   name: created_at
-                  type: TIMESTAMP
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:
                   name: updated_at
-                  type: TIMESTAMP
+                  type: BIGINT
                   constraints:
                     nullable: false
               - column:
@@ -57,3 +57,13 @@ databaseChangeLog:
                   constraints:
                     nullable: false
                   defaultValueBoolean: false
+              - column:
+                  name: created_by
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: updated_by
+                  type: BIGINT
+                  constraints:
+                    nullable: true
