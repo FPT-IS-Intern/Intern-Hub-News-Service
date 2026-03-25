@@ -32,5 +32,7 @@ public interface NewsRepository {
   void deleteById(Long id);
 
   boolean existsById(Long id);
-}
 
+  NewsModel update(NewsModel model);
+
+}

@@ -1,9 +1,9 @@
 package com.intern.hub.news.core.domain.port;
 
-import com.intern.hub.news.core.domain.model.NewsStatusModel;
-
 import java.util.List;
 import java.util.Optional;
+
+import com.intern.hub.news.core.domain.model.NewsStatusModel;
 
 public interface NewsStatusRepository {
     NewsStatusModel create(NewsStatusModel model);
@@ -13,6 +13,8 @@ public interface NewsStatusRepository {
     List<NewsStatusModel> findAll();
 
     void deleteById(Long id);
+
+    Optional<NewsStatusModel> findByName(String name);
 
     boolean existsById(Long id);
 }

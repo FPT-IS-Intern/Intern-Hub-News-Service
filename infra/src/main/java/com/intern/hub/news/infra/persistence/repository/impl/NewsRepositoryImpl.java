@@ -112,4 +112,9 @@ public class NewsRepositoryImpl implements NewsRepository {
   public boolean existsById(Long id) {
     return newsJpaRepository.existsById(id);
   }
+  @Override
+  public NewsModel update(NewsModel model) {
+    News entity = newsMapper.toEntity(model);
+    return newsMapper.toModel(newsJpaRepository.save(entity));
+  }
 }

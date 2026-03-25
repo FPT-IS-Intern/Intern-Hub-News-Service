@@ -24,4 +24,5 @@ public class NewsModel {
   private Long createdAt;
   private Long updatedAt;
   private Long createdBy;
+  private Long updatedBy;
 }

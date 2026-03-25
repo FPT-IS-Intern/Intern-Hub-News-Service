@@ -46,4 +46,8 @@ public class NewsStatusRepositoryImpl implements NewsStatusRepository {
     public boolean existsById(Long id) {
         return newsStatusJpaRepository.existsById(id);
     }
+    @Override
+    public Optional<NewsStatusModel> findByName(String name) {
+        return newsStatusJpaRepository.findByName(name).map(newsStatusMapper::toModel);
+    }
 }
