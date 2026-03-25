@@ -25,4 +25,5 @@ public class CreateNewsCommand {
     private Boolean featured;
 
     private Long userId;
+
 }
