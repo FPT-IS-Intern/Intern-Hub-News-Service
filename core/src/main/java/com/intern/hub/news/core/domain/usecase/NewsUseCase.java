@@ -21,15 +21,19 @@ public interface NewsUseCase {
 
   PaginatedData<NewsModel> findPage(int page, int size);
 
-  PaginatedData<NewsModel> findPageByDateRange(long start, long end, int page, int size, String sortColumn, String sortDirection);
+  PaginatedData<NewsModel> findPageByDateRange(long start, long end, int page, int size, String sortColumn,
+      String sortDirection);
 
   PaginatedData<NewsModel> getApprovedNews(int page, int size);
+
   PaginatedData<NewsModel> getApprovedNewsByTopic(Long topicId, int page, int size);
 
   PaginatedData<NewsModel> getPendingNews(int page, int size);
 
   PaginatedData<NewsModel> getAllNewsIsFeatured(int page, int size);
+
   List<NewsModel> getLatestFeaturedNews(int total);
+
   List<NewsModel> getTop3LatestNews();
 
   void delete(Long id);
