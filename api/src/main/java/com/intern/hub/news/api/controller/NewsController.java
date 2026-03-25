@@ -2,81 +2,78 @@ package com.intern.hub.news.api.controller;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
-import com.intern.hub.news.api.dto.request.CreateNewsRequest;
-import com.intern.hub.news.api.dto.request.UpdateNewsRequest;
+import com.intern.hub.news.api.dto.response.NewsBriefResponse;
 import com.intern.hub.news.api.dto.response.NewsResponse;
 import com.intern.hub.news.api.mapper.NewsMapper;
-import com.intern.hub.news.core.domain.usecase.NewsUsecase;
-import jakarta.validation.Valid;
-import java.util.List;
-
+import com.intern.hub.news.core.domain.model.NewsModel;
+import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/news")
 public class NewsController {
 
-  private final NewsUsecase newsUsecase;
+  private final NewsUseCase newsUsecase;
   private final NewsMapper newsMapper;
 
-  @PostMapping
-  public ResponseApi<NewsResponse> create(@RequestBody @Valid CreateNewsRequest request) {
-    return ResponseApi.ok(newsMapper.toResponse(newsUsecase.create(
-        request.getTitle(),
-        request.getBody(),
-        request.getThumbnail(),
-        request.getTopicId(),
-        request.getStatusId(),
-        request.getFeatured()
-    )));
-  }
-
-  @GetMapping("/{id}")
+  @GetMapping("/{id:[0-9]+}")
   public ResponseApi<NewsResponse> getById(@PathVariable Long id) {
     return ResponseApi.ok(newsMapper.toResponse(newsUsecase.getById(id)));
   }
 
-  @GetMapping
-  public ResponseApi<PaginatedData<NewsResponse>> getAll(
+  @GetMapping("/isFeatured")
+  public ResponseApi<PaginatedData<NewsResponse>> getAllNewsIsFeatured(
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size
-  ) {
-    List<NewsResponse> all = newsUsecase.getAll().stream().map(newsMapper::toSummaryResponse).toList();
-    int total = all.size();
-    int fromIndex = Math.min(page * size, total);
-    int toIndex = Math.min(fromIndex + size, total);
-    List<NewsResponse> paged = all.subList(fromIndex, toIndex);
-    PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(paged, total, size);
+      @RequestParam(defaultValue = "10") int size) {
+    PaginatedData<NewsModel> pageData = newsUsecase.getAllNewsIsFeatured(page, size);
+    List<NewsResponse> items = pageData.getItems().stream()
+        .map(newsMapper::toSummaryResponse).toList();
+    PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
     return ResponseApi.ok(paginatedData);
   }
 
-  @GetMapping("/isFeatured")
-  public ResponseApi<List<NewsResponse>> getAllNewsIsFeatured() {
-    List<NewsResponse> response = newsUsecase.getAllNewsIsFeatured().stream().map(newsMapper::toSummaryResponse).toList();
-    return ResponseApi.ok(response);
+  @GetMapping("/approved")
+  public ResponseApi<PaginatedData<NewsResponse>> getApprovedNews(
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size) {
+    PaginatedData<NewsModel> pageData = newsUsecase.getApprovedNews(page, size);
+    List<NewsResponse> items = pageData.getItems().stream()
+        .map(newsMapper::toSummaryResponse).toList();
+    PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
+    return ResponseApi.ok(paginatedData);
   }
 
-  @PutMapping("/{id}")
-  public ResponseApi<NewsResponse> update(@PathVariable Long id, @RequestBody @Valid UpdateNewsRequest request) {
-    return ResponseApi.ok(newsMapper.toResponse(newsUsecase.update(
-        id,
-        request.getTitle(),
-        request.getBody(),
-        request.getTopicId(),
-        request.getFeatured()
-    )));
+  @GetMapping("/by-topic/{topicId}")
+  public ResponseApi<PaginatedData<NewsResponse>> getApprovedNewsByTopic(
+      @PathVariable Long topicId,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size) {
+    PaginatedData<NewsModel> pageData = newsUsecase.getApprovedNewsByTopic(topicId, page, size);
+    List<NewsResponse> items = pageData.getItems().stream()
+        .map(newsMapper::toSummaryResponse).toList();
+    PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
+    return ResponseApi.ok(paginatedData);
   }
 
-  @PostMapping("/{id}/approve")
-  public ResponseApi<NewsResponse> approve(@PathVariable Long id) {
-    return ResponseApi.ok(newsMapper.toResponse(newsUsecase.approve(id)));
+  @GetMapping("/latest")
+  public ResponseApi<List<NewsResponse>> getTop3LatestNews() {
+    List<NewsResponse> latest = newsUsecase.getTop3LatestNews().stream().map(newsMapper::toSummaryResponse).toList();
+    return ResponseApi.ok(latest);
   }
 
-  @DeleteMapping("/{id}")
-  public ResponseApi<String> delete(@PathVariable Long id) {
-    newsUsecase.delete(id);
-    return ResponseApi.ok("Delete Successfully");
+  @GetMapping("/latest-featured")
+  public ResponseApi<List<NewsBriefResponse>> getLatestFeaturedBrief(@RequestParam(defaultValue = "5") int total) {
+    List<NewsBriefResponse> featured = newsUsecase.getLatestFeaturedNews(total).stream()
+        .map(model -> {
+          var brief = new NewsBriefResponse();
+          brief.setId(model.getId());
+          brief.setThumbNail(model.getThumbnail());
+          return brief;
+        }).toList();
+    return ResponseApi.ok(featured);
   }
 }

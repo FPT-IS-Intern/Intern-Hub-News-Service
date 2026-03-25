@@ -14,12 +14,16 @@ public class NewsMapper {
         response.setId(model.getId());
         response.setTitle(model.getTitle());
         response.setBody(model.getBody());
+        response.setShortDescription(model.getShortDescription());
         response.setThumbNail(model.getThumbnail());
-        response.setTopicName(model.getTopicName());
+        response.setTopics(model.getTopics() != null 
+            ? model.getTopics().stream().map(NewsTopicMapper::toResponse).toList() 
+            : new java.util.ArrayList<>());
         response.setStatus(model.getStatus());
         response.setFeatured(model.isFeatured());
         response.setCreatedAt(model.getCreatedAt());
         response.setUpdatedAt(model.getUpdatedAt());
+        response.setCreatedBy(model.getCreatedBy());
         return response;
     }
 
@@ -27,12 +31,16 @@ public class NewsMapper {
         var response = new NewsResponse();
         response.setId(model.getId());
         response.setTitle(model.getTitle());
+        response.setShortDescription(model.getShortDescription());
         response.setThumbNail(model.getThumbnail());
-        response.setTopicName(model.getTopicName());
+        response.setTopics(model.getTopics() != null 
+            ? model.getTopics().stream().map(NewsTopicMapper::toResponse).toList() 
+            : new java.util.ArrayList<>());
         response.setStatus(model.getStatus());
         response.setFeatured(model.isFeatured());
         response.setCreatedAt(model.getCreatedAt());
         response.setUpdatedAt(model.getUpdatedAt());
+        response.setCreatedBy(model.getCreatedBy());
         return response;
     }
 }

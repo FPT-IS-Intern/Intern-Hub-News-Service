@@ -23,6 +23,6 @@ public class NewsTopics {
     @Column(length = 255)
     private String description;
 
-    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "topics", fetch = FetchType.LAZY)
     private List<News> newsList;
 }

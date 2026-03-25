@@ -1,7 +1,7 @@
 package com.intern.hub.news.api.dto.request;
 
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -24,13 +24,15 @@ public class CreateNewsRequest {
 
   private String thumbnail;
 
-   // topicId is optional, can be null
-   private Long topicId;
+  // topicId is optional, can be null
+  private Long topicId;
 
-   @NotNull
-   @Positive
-   private Long statusId;
+  @NotNull
+  @Positive
+  private Long statusId;
 
   @NotNull
   private Boolean featured;
+
+  private Long userId;
 }

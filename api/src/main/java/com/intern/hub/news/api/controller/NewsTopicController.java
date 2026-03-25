@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/news/topics")
+@RequestMapping("/news/topic")
 public class NewsTopicController {
 
     private final NewsTopicUsecase newsTopicUsecase;

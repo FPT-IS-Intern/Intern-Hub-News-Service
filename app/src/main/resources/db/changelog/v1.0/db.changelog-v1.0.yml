@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/v1.0/001-create-news-topics-table.yml
   - include:
       file: db/changelog/v1.0/001-create-news-table.yml
+  - include:
+      file: db/changelog/v1.0/002-add-short-description-to-news.yml

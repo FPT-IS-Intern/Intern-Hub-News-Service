@@ -22,10 +22,10 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: false
   liquibase:
-    enabled: true
+    enabled: false
     change-log: classpath:db/changelog/db.changelog-master.yml
     default-schema: ${SCHEMA_NAME}
   kafka:
@@ -33,6 +33,13 @@ spring:
   web:
     resources:
       add-mappings: false
+  feign:
+    client:
+      config:
+        hrm:
+          url: ${TICKET_SERVICE_URL:http://localhost:8081}
+        ticket-service:
+          url: ${TICKET_SERVICE_URL:http://localhost:8081}
 management:
   opentelemetry:
     resource-attributes:

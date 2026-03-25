@@ -10,8 +10,6 @@ import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.infra.mapper.NewsEntityMapper;
 import com.intern.hub.news.infra.persistence.entity.News;
 import com.intern.hub.news.infra.persistence.repository.jpa.NewsJpaRepository;
-import com.intern.hub.news.infra.persistence.repository.jpa.NewsStatusJpaRepository;
-import com.intern.hub.news.infra.persistence.repository.jpa.NewsTopicJpaRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,23 +19,10 @@ public class NewsRepositoryImpl implements NewsRepository {
 
   private final NewsJpaRepository newsJpaRepository;
   private final NewsEntityMapper newsMapper;
-  private final NewsTopicJpaRepository newsTopicJpaRepository;
-  private final NewsStatusJpaRepository newsStatusJpaRepository;
 
   @Override
   public NewsModel create(NewsModel model) {
     News entity = newsMapper.toEntity(model);
-
-    if (entity.getTopic() != null && entity.getTopic().getId() != null) {
-      entity.setTopic(newsTopicJpaRepository.findById(entity.getTopic().getId()).orElse(null));
-    }
-
-    if (entity.getStatus() != null && entity.getStatus().getId() != null) {
-      entity.setStatus(newsStatusJpaRepository.findById(entity.getStatus().getId()).orElse(null));
-    } else if (model.getStatus() != null && !model.getStatus().isBlank()) {
-      entity.setStatus(newsStatusJpaRepository.findByName(model.getStatus()).orElse(null));
-    }
-
     return newsMapper.toModel(newsJpaRepository.save(entity));
   }
 
@@ -49,6 +34,73 @@ public class NewsRepositoryImpl implements NewsRepository {
   @Override
   public List<NewsModel> findAll() {
     return newsJpaRepository.findAll().stream().map(newsMapper::toModel).toList();
+  }
+
+  @Override
+  public List<NewsModel> findPage(int page, int size) {
+    return newsJpaRepository
+        .findAllProjectedBy(org.springframework.data.domain.PageRequest.of(page, size,
+            org.springframework.data.domain.Sort.by("createdAt").descending()))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
+  public List<NewsModel> findPageByStatus(String status, int page, int size) {
+    return newsJpaRepository
+        .findProjectedByStatus_Name(status,
+            org.springframework.data.domain.PageRequest.of(page, size,
+                org.springframework.data.domain.Sort.by("createdAt").descending()))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
+  public List<NewsModel> findPageByFeatured(boolean featured, int page, int size) {
+    return newsJpaRepository
+        .findProjectedByIsFeatured(featured,
+            org.springframework.data.domain.PageRequest.of(page, size,
+                org.springframework.data.domain.Sort.by("updatedAt").descending()))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
+  public List<NewsModel> findPageByTopic(Long topicId, int page, int size) {
+    return newsJpaRepository
+        .findProjectedByTopics_IdAndStatus_Name(topicId, "PUBLIC",
+            org.springframework.data.domain.PageRequest.of(page, size,
+                org.springframework.data.domain.Sort.by("createdAt").descending()))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
+  public List<NewsModel> findPageByDateRange(long start, long end, int page, int size, String sortColumn,
+      String sortDirection) {
+    org.springframework.data.domain.Sort sort = sortDirection.equalsIgnoreCase("asc")
+        ? org.springframework.data.domain.Sort.by(sortColumn).ascending()
+        : org.springframework.data.domain.Sort.by(sortColumn).descending();
+
+    return newsJpaRepository
+        .findAllByCreatedAtBetween(start, end, org.springframework.data.domain.PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
+  public long countByDateRange(long start, long end) {
+    return newsJpaRepository.countByCreatedAtBetween(start, end);
+  }
+
+  @Override
+  public long count() {
+    return newsJpaRepository.count();
+  }
+
+  @Override
+  public long countByStatus(String status) {
+    return newsJpaRepository.countByStatus_Name(status);
+  }
+
+  @Override
+  public long countByFeatured(boolean featured) {
+    return newsJpaRepository.countByIsFeatured(featured);
   }
 
   @Override

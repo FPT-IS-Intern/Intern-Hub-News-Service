@@ -1,14 +1,18 @@
 package com.intern.hub.news.app.config;
 
+import com.intern.hub.news.api.config.OpenApiConfig;
 import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.core.domain.port.NewsTopicRepository;
 import com.intern.hub.news.core.domain.port.NewsStatusRepository;
-import com.intern.hub.news.core.domain.usecase.NewsUsecase;
+import com.intern.hub.news.core.domain.port.TicketService;
 import com.intern.hub.news.core.domain.usecase.NewsTopicUsecase;
-import com.intern.hub.news.core.domain.usecase.NewsStatusUsecase;
-import com.intern.hub.news.core.domain.usecase.impl.NewsUsecaseImpl;
-import com.intern.hub.news.core.domain.usecase.impl.NewsTopicUsecaseImpl;
-import com.intern.hub.news.core.domain.usecase.impl.NewsStatusUsecaseImpl;
+import com.intern.hub.news.core.domain.usecase.NewsStatusUseCase;
+import com.intern.hub.news.core.domain.usecase.NewsUseCase;
+import com.intern.hub.news.core.domain.usecase.impl.NewsUseCaseImpl;
+import com.intern.hub.news.core.domain.usecase.impl.NewsTopicUseCaseImpl;
+import com.intern.hub.news.core.domain.usecase.impl.NewsStatusUseCaseImpl;
+import com.intern.hub.news.infra.service.feign.TicketServiceFeignClient;
+import com.intern.hub.news.infra.persistence.repository.impl.TicketServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,17 +20,23 @@ import org.springframework.context.annotation.Configuration;
 public class UseCaseConfig {
 
   @Bean
-  public NewsUsecase newsUsecase(NewsRepository newsRepository) {
-    return new NewsUsecaseImpl(newsRepository);
+  public NewsUseCase newsUsecase(NewsRepository newsRepository) {
+    return new NewsUseCaseImpl(newsRepository);
   }
 
   @Bean
   public NewsTopicUsecase newsTopicUsecase(NewsTopicRepository newsTopicRepository) {
-    return new NewsTopicUsecaseImpl(newsTopicRepository);
+    return new NewsTopicUseCaseImpl(newsTopicRepository);
   }
 
   @Bean
-  public NewsStatusUsecase newsStatusUsecase(NewsStatusRepository newsStatusRepository) {
-    return new NewsStatusUsecaseImpl(newsStatusRepository);
+  public NewsStatusUseCase newsStatusUsecase(NewsStatusRepository newsStatusRepository) {
+    return new NewsStatusUseCaseImpl(newsStatusRepository);
   }
+  
+  @Bean
+  public TicketService ticketService(TicketServiceFeignClient ticketServiceFeignClient) {
+    return new TicketServiceImpl(ticketServiceFeignClient);
+  }
+
 }
