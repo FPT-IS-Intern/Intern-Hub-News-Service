@@ -2,7 +2,7 @@ package com.intern.hub.news.core.domain.usecase.impl;
 
 import com.intern.hub.news.core.domain.model.NewsTopicModel;
 import com.intern.hub.news.core.domain.port.NewsTopicRepository;
-import com.intern.hub.news.core.domain.usecase.NewsTopicUsecase;
+import com.intern.hub.news.core.domain.usecase.NewsTopicUseCase;
 import lombok.RequiredArgsConstructor;
 import com.intern.hub.library.common.exception.BadRequestException;
 import com.intern.hub.library.common.exception.ExceptionConstant;
@@ -10,7 +10,7 @@ import com.intern.hub.library.common.exception.ExceptionConstant;
 import java.util.List;
 
 @RequiredArgsConstructor
-public class NewsTopicUseCaseImpl implements NewsTopicUsecase {
+public class NewsTopicUseCaseImpl implements NewsTopicUseCase {
 
     private final NewsTopicRepository newsTopicRepository;
 

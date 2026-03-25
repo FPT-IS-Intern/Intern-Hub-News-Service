@@ -1,11 +1,10 @@
 package com.intern.hub.news.app.config;
 
-import com.intern.hub.news.api.config.OpenApiConfig;
 import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.core.domain.port.NewsTopicRepository;
 import com.intern.hub.news.core.domain.port.NewsStatusRepository;
 import com.intern.hub.news.core.domain.port.TicketService;
-import com.intern.hub.news.core.domain.usecase.NewsTopicUsecase;
+import com.intern.hub.news.core.domain.usecase.NewsTopicUseCase;
 import com.intern.hub.news.core.domain.usecase.NewsStatusUseCase;
 import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import com.intern.hub.news.core.domain.usecase.impl.NewsUseCaseImpl;
@@ -25,7 +24,7 @@ public class UseCaseConfig {
   }
 
   @Bean
-  public NewsTopicUsecase newsTopicUsecase(NewsTopicRepository newsTopicRepository) {
+  public NewsTopicUseCase newsTopicUsecase(NewsTopicRepository newsTopicRepository) {
     return new NewsTopicUseCaseImpl(newsTopicRepository);
   }
 

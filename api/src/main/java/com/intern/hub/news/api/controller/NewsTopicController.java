@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.*;
 import com.intern.hub.library.common.dto.ResponseApi;
 import com.intern.hub.news.api.dto.response.NewsTopicResponse;
 import com.intern.hub.news.core.domain.model.NewsTopicModel;
-import com.intern.hub.news.core.domain.usecase.NewsTopicUsecase;
+import com.intern.hub.news.core.domain.usecase.NewsTopicUseCase;
 import com.intern.hub.news.api.mapper.NewsTopicMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import java.util.List;
 @RequestMapping("/news/topic")
 public class NewsTopicController {
 
-    private final NewsTopicUsecase newsTopicUsecase;
+    private final NewsTopicUseCase newsTopicUsecase;
 
     @PostMapping
     public ResponseApi<NewsTopicResponse> create(@RequestBody @Valid NewsTopicResponse request) {
