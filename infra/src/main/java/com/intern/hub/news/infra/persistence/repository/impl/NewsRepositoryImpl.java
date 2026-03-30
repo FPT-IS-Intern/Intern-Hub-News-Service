@@ -4,21 +4,57 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
+import com.intern.hub.news.infra.persistence.repository.jpa.NewsJpaRepository;
 import com.intern.hub.news.core.domain.model.NewsModel;
 import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.infra.mapper.NewsEntityMapper;
 import com.intern.hub.news.infra.persistence.entity.News;
-import com.intern.hub.news.infra.persistence.repository.jpa.NewsJpaRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class NewsRepositoryImpl implements NewsRepository {
+
+  private static final String STATUS_APPROVED = "APPROVED";
+  private static final List<String> ALLOWED_SORT_COLUMNS = List.of("createdAt", "title", "updatedAt", "id");
 
   private final NewsJpaRepository newsJpaRepository;
   private final NewsEntityMapper newsMapper;
+
+  private Sort getSort(String sortColumn, String sortDirection) {
+    if (sortColumn == null || sortColumn.isEmpty()) {
+      return Sort.by("createdAt").descending();
+    }
+
+    String original = sortColumn.trim();
+    String sortCol = original;
+
+    // Map snake_case or specific variants to camelCase
+    if ("created_at".equalsIgnoreCase(original) || "createdAt".equalsIgnoreCase(original)) {
+      sortCol = "createdAt";
+    } else if ("updated_at".equalsIgnoreCase(original) || "updatedAt".equalsIgnoreCase(original)) {
+      sortCol = "updatedAt";
+    } else if ("title".equalsIgnoreCase(original)) {
+      sortCol = "title";
+    } else if ("id".equalsIgnoreCase(original)) {
+      sortCol = "id";
+    }
+
+    if (!ALLOWED_SORT_COLUMNS.contains(sortCol)) {
+      log.warn("[NewsRepositoryImpl] Invalid sort column '{}', defaulting to createdAt", original);
+      sortCol = "createdAt";
+    }
+
+    return sortDirection != null && sortDirection.equalsIgnoreCase("asc")
+        ? Sort.by(sortCol).ascending()
+        : Sort.by(sortCol).descending();
+  }
 
   @Override
   public NewsModel create(NewsModel model) {
@@ -37,49 +73,59 @@ public class NewsRepositoryImpl implements NewsRepository {
   }
 
   @Override
-  public List<NewsModel> findPage(int page, int size) {
+  public List<NewsModel> findPage(int page, int size, String sortColumn, String sortDirection) {
+    Sort sort = getSort(sortColumn, sortDirection);
     return newsJpaRepository
-        .findAllProjectedBy(org.springframework.data.domain.PageRequest.of(page, size,
-            org.springframework.data.domain.Sort.by("createdAt").descending()))
+        .findAllProjectedBy(PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
 
   @Override
-  public List<NewsModel> findPageByStatus(String status, int page, int size) {
+  public List<NewsModel> findPageByStatus(String status, int page, int size, String sortColumn, String sortDirection) {
+    Sort sort = getSort(sortColumn, sortDirection);
     return newsJpaRepository
-        .findProjectedByStatus_Name(status,
-            org.springframework.data.domain.PageRequest.of(page, size,
-                org.springframework.data.domain.Sort.by("createdAt").descending()))
+        .findProjectedByStatus_Name(status, PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
 
   @Override
-  public List<NewsModel> findPageByFeatured(boolean featured, int page, int size) {
+  public List<NewsModel> findPageByFeatured(boolean featured, int page, int size, String sortColumn,
+      String sortDirection) {
+    Sort sort = getSort(sortColumn, sortDirection);
     return newsJpaRepository
-        .findProjectedByIsFeatured(featured,
-            org.springframework.data.domain.PageRequest.of(page, size,
-                org.springframework.data.domain.Sort.by("updatedAt").descending()))
+        .findProjectedByIsFeatured(featured, PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
 
   @Override
-  public List<NewsModel> findPageByTopic(Long topicId, int page, int size) {
+  public List<NewsModel> findPageByTopic(Long topicId, int page, int size, String sortColumn, String sortDirection) {
+    Sort sort = getSort(sortColumn, sortDirection);
     return newsJpaRepository
-        .findProjectedByTopics_IdAndStatus_Name(topicId, "PUBLIC",
-            org.springframework.data.domain.PageRequest.of(page, size,
-                org.springframework.data.domain.Sort.by("createdAt").descending()))
+        .findProjectedByTopics_IdAndStatus_Name(topicId, STATUS_APPROVED, PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
+  public List<NewsModel> findPageByStatusAndTitle(String status, String title, int page, int size, String sortColumn,
+      String sortDirection) {
+    String searchTitle = (title == null) ? "" : title.trim();
+    String searchStatus = (status == null) ? "" : status;
+    Sort sort = getSort(sortColumn, sortDirection);
+    log.debug("[NewsRepositoryImpl] Search: status={}, title='{}', page={}, size={}, sortCol={}, sortDir={}",
+        searchStatus, searchTitle, page, size, sort.toString(), sortDirection);
+    return newsJpaRepository
+        .findProjectedByStatus_NameAndTitleContainingIgnoreCase(searchStatus, searchTitle,
+            PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
 
   @Override
   public List<NewsModel> findPageByDateRange(long start, long end, int page, int size, String sortColumn,
       String sortDirection) {
-    org.springframework.data.domain.Sort sort = sortDirection.equalsIgnoreCase("asc")
-        ? org.springframework.data.domain.Sort.by(sortColumn).ascending()
-        : org.springframework.data.domain.Sort.by(sortColumn).descending();
+    Sort sort = getSort(sortColumn, sortDirection);
 
     return newsJpaRepository
-        .findAllByCreatedAtBetween(start, end, org.springframework.data.domain.PageRequest.of(page, size, sort))
+        .findAllByCreatedAtBetween(start, end, PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
 
@@ -99,6 +145,11 @@ public class NewsRepositoryImpl implements NewsRepository {
   }
 
   @Override
+  public long countByStatusAndTitle(String status, String title) {
+    return newsJpaRepository.countByStatus_NameAndTitleContainingIgnoreCase(status, title);
+  }
+
+  @Override
   public long countByFeatured(boolean featured) {
     return newsJpaRepository.countByIsFeatured(featured);
   }
@@ -112,6 +163,7 @@ public class NewsRepositoryImpl implements NewsRepository {
   public boolean existsById(Long id) {
     return newsJpaRepository.existsById(id);
   }
+
   @Override
   public NewsModel update(NewsModel model) {
     News entity = newsMapper.toEntity(model);

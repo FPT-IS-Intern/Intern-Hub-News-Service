@@ -12,13 +12,11 @@ public interface NewsRepository {
 
   List<NewsModel> findAll();
 
-  List<NewsModel> findPage(int page, int size);
-
-  List<NewsModel> findPageByStatus(String status, int page, int size);
-
-  List<NewsModel> findPageByFeatured(boolean featured, int page, int size);
-  List<NewsModel> findPageByTopic(Long topicId, int page, int size);
-
+  List<NewsModel> findPage(int page, int size, String sortColumn, String sortDirection);
+  List<NewsModel> findPageByStatus(String status, int page, int size, String sortColumn, String sortDirection);
+  List<NewsModel> findPageByFeatured(boolean featured, int page, int size, String sortColumn, String sortDirection);
+  List<NewsModel> findPageByTopic(Long topicId, int page, int size, String sortColumn, String sortDirection);
+  List<NewsModel> findPageByStatusAndTitle(String status, String title, int page, int size, String sortColumn, String sortDirection);
   List<NewsModel> findPageByDateRange(long start, long end, int page, int size, String sortColumn, String sortDirection);
 
   long countByDateRange(long start, long end);
@@ -26,6 +24,7 @@ public interface NewsRepository {
   long count();
 
   long countByStatus(String status);
+  long countByStatusAndTitle(String status, String title);
 
   long countByFeatured(boolean featured);
 

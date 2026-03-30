@@ -27,11 +27,12 @@ public class NewsManagementController {
             @RequestParam(required = false) Long endDate,
             @RequestParam(defaultValue = "createdAt") String sortColumn,
             @RequestParam(defaultValue = "desc") String sortDirection) {
-        
+
         long start = startDate != null ? startDate : 0L;
         long end = endDate != null ? endDate : Long.MAX_VALUE;
-        
-        PaginatedData<NewsModel> pageData = newsUsecase.findPageByDateRange(start, end, page, size, sortColumn, sortDirection);
+
+        PaginatedData<NewsModel> pageData = newsUsecase.findPageByDateRange(start, end, page, size, sortColumn,
+                sortDirection);
         List<NewsResponse> items = pageData.getItems().stream()
                 .map(newsMapper::toSummaryResponse).toList();
         PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
@@ -41,8 +42,10 @@ public class NewsManagementController {
     @GetMapping("/pending")
     public ResponseApi<PaginatedData<NewsResponse>> getPendingNews(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PaginatedData<NewsModel> pageData = newsUsecase.getPendingNews(page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortColumn,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        PaginatedData<NewsModel> pageData = newsUsecase.getPendingNews(page, size, sortColumn, sortDirection);
         List<NewsResponse> items = pageData.getItems().stream()
                 .map(newsMapper::toSummaryResponse).toList();
         PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);

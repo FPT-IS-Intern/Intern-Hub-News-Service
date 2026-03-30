@@ -1,5 +1,6 @@
 package com.intern.hub.news.core.domain.usecase.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import com.intern.hub.news.core.domain.model.NewsTopicModel;
 
@@ -24,8 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class NewsUseCaseImpl implements NewsUseCase {
 
-  private static final String STATUS_PENDING_APPROVAL = "PENDING_APPROVAL";
-  private static final String STATUS_PUBLIC = "PUBLIC";
+  private static final String STATUS_PENDING_APPROVAL = "PENDING";
+  private static final String STATUS_APPROVED = "APPROVED";
 
   private final NewsRepository newsRepository;
   private final NewsStatusRepository newsStatusRepository;
@@ -58,7 +59,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       newsModel.setUpdatedAt(now);
       newsModel.setCreatedBy(command.getUserId());
 
-      NewsModel saved = newsRepository.create(newsModel);
+      NewsModel saved = newsRepository.create(newsModel); 
       log.info("[News] Create New Successfully: {}", saved != null ? saved.getId() : "null");
 
       return saved;
@@ -87,7 +88,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
             tm.setId(tId);
             return tm;
           }).toList()
-          : new java.util.ArrayList<>());
+          : new ArrayList<>());
       existing.setFeatured(command.getFeatured() != null && command.getFeatured());
 
       // Update forces status back to pending for re-approval
@@ -110,7 +111,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       if (!STATUS_PENDING_APPROVAL.equals(existing.getStatus())) {
         throw new IllegalArgumentException("Only pending news can be approved");
       }
-      existing.setStatusId(getStatusIdByName(STATUS_PUBLIC));
+      existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
       existing.setUpdatedAt(System.currentTimeMillis());
       return newsRepository.update(existing);
     } catch (IllegalArgumentException e) {
@@ -140,7 +141,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public PaginatedData<NewsModel> findPage(int page, int size) {
-    List<NewsModel> items = newsRepository.findPage(page, size);
+    List<NewsModel> items = newsRepository.findPage(page, size, "createdAt", "desc");
     long total = newsRepository.count();
     return new PaginatedData<>(items, (int) total, size);
   }
@@ -154,16 +155,23 @@ public class NewsUseCaseImpl implements NewsUseCase {
   }
 
   @Override
-  public PaginatedData<NewsModel> getApprovedNews(int page, int size) {
-    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_PUBLIC, page, size);
-    long total = newsRepository.countByStatus(STATUS_PUBLIC);
+  public PaginatedData<NewsModel> getApprovedNews(int page, int size, String sortColumn, String sortDirection) {
+    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_APPROVED, page, size, sortColumn, sortDirection);
+    long total = newsRepository.countByStatus(STATUS_APPROVED);
     return new PaginatedData<>(items, (int) total, size);
   }
 
   @Override
-  public PaginatedData<NewsModel> getApprovedNewsByTopic(Long topicId, int page, int size) {
+  public PaginatedData<NewsModel> searchApprovedNewsByTitle(String title, int page, int size, String sortColumn, String sortDirection) {
+    List<NewsModel> items = newsRepository.findPageByStatusAndTitle(STATUS_APPROVED, title, page, size, sortColumn, sortDirection);
+    long total = newsRepository.countByStatusAndTitle(STATUS_APPROVED, title);
+    return new PaginatedData<>(items, (int) total, size);
+  }
+
+  @Override
+  public PaginatedData<NewsModel> getApprovedNewsByTopic(Long topicId, int page, int size, String sortColumn, String sortDirection) {
     try {
-      List<NewsModel> items = newsRepository.findPageByTopic(topicId, page, size);
+      List<NewsModel> items = newsRepository.findPageByTopic(topicId, page, size, sortColumn, sortDirection);
       long total = items.size(); // Simplified total for topic-specific view
       return new PaginatedData<>(items, (int) total, size);
     } catch (Exception e) {
@@ -173,15 +181,15 @@ public class NewsUseCaseImpl implements NewsUseCase {
   }
 
   @Override
-  public PaginatedData<NewsModel> getPendingNews(int page, int size) {
-    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_PENDING_APPROVAL, page, size);
+  public PaginatedData<NewsModel> getPendingNews(int page, int size, String sortColumn, String sortDirection) {
+    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_PENDING_APPROVAL, page, size, sortColumn, sortDirection);
     long total = newsRepository.countByStatus(STATUS_PENDING_APPROVAL);
     return new PaginatedData<>(items, (int) total, size);
   }
 
   @Override
-  public PaginatedData<NewsModel> getAllNewsIsFeatured(int page, int size) {
-    List<NewsModel> items = newsRepository.findPageByFeatured(true, page, size);
+  public PaginatedData<NewsModel> getAllNewsIsFeatured(int page, int size, String sortColumn, String sortDirection) {
+    List<NewsModel> items = newsRepository.findPageByFeatured(true, page, size, sortColumn, sortDirection);
     long total = newsRepository.countByFeatured(true);
     return new PaginatedData<>(items, (int) total, size);
   }
@@ -189,7 +197,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
   @Override
   public List<NewsModel> getLatestFeaturedNews(int total) {
     try {
-      return newsRepository.findPageByFeatured(true, 0, total);
+      return newsRepository.findPageByFeatured(true, 0, total, "updatedAt", "desc");
     } catch (Exception e) {
       log.error("[News] Lỗi khi lấy tin tức nổi bật: {}", e.getMessage());
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to get latest featured news");
@@ -199,7 +207,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
   @Override
   public List<NewsModel> getTop3LatestNews() {
     try {
-      return newsRepository.findPageByStatus(STATUS_PUBLIC, 0, 3);
+      return newsRepository.findPageByStatus(STATUS_APPROVED, 0, 3, "createdAt", "desc");
     } catch (Exception _) {
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to get top 3 latest news");
     }
