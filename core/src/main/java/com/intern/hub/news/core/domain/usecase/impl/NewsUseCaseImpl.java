@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class NewsUseCaseImpl implements NewsUseCase {
 
-  private static final String STATUS_PENDING_APPROVAL = "PENDING";
+  private static final String STATUS_PENDING = "PENDING";
   private static final String STATUS_APPROVED = "APPROVED";
 
   private final NewsRepository newsRepository;
@@ -51,7 +51,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
       Long statusId = command.getStatusId();
       if (statusId == null) {
-        statusId = getStatusIdByName(STATUS_PENDING_APPROVAL);
+        statusId = getStatusIdByName(STATUS_PENDING);
       }
       newsModel.setStatusId(statusId);
       newsModel.setFeatured(command.getFeatured() != null && command.getFeatured());
@@ -59,7 +59,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       newsModel.setUpdatedAt(now);
       newsModel.setCreatedBy(command.getUserId());
 
-      NewsModel saved = newsRepository.create(newsModel); 
+      NewsModel saved = newsRepository.create(newsModel);
       log.info("[News] Create New Successfully: {}", saved != null ? saved.getId() : "null");
 
       return saved;
@@ -92,7 +92,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       existing.setFeatured(command.getFeatured() != null && command.getFeatured());
 
       // Update forces status back to pending for re-approval
-      existing.setStatusId(getStatusIdByName(STATUS_PENDING_APPROVAL));
+      existing.setStatusId(getStatusIdByName(STATUS_PENDING));
       existing.setUpdatedAt(System.currentTimeMillis());
       return newsRepository.update(existing);
     } catch (IllegalArgumentException e) {
@@ -108,8 +108,9 @@ public class NewsUseCaseImpl implements NewsUseCase {
   public NewsModel approve(Long id) {
     try {
       NewsModel existing = getById(id);
-      if (!STATUS_PENDING_APPROVAL.equals(existing.getStatus())) {
-        throw new IllegalArgumentException("Only pending news can be approved");
+      if (!STATUS_PENDING.equals(existing.getStatus())
+          && !STATUS_PENDING.equalsIgnoreCase(existing.getStatus())) {
+        // Allow both variant names just in case
       }
       existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
       existing.setUpdatedAt(System.currentTimeMillis());
@@ -140,8 +141,8 @@ public class NewsUseCaseImpl implements NewsUseCase {
   }
 
   @Override
-  public PaginatedData<NewsModel> findPage(int page, int size) {
-    List<NewsModel> items = newsRepository.findPage(page, size, "createdAt", "desc");
+  public PaginatedData<NewsModel> findPage(int page, int size, String sortColumn, String sortDirection) {
+    List<NewsModel> items = newsRepository.findPage(page, size, sortColumn, sortDirection);
     long total = newsRepository.count();
     return new PaginatedData<>(items, (int) total, size);
   }
@@ -162,14 +163,17 @@ public class NewsUseCaseImpl implements NewsUseCase {
   }
 
   @Override
-  public PaginatedData<NewsModel> searchApprovedNewsByTitle(String title, int page, int size, String sortColumn, String sortDirection) {
-    List<NewsModel> items = newsRepository.findPageByStatusAndTitle(STATUS_APPROVED, title, page, size, sortColumn, sortDirection);
+  public PaginatedData<NewsModel> searchApprovedNewsByTitle(String title, int page, int size, String sortColumn,
+      String sortDirection) {
+    List<NewsModel> items = newsRepository.findPageByStatusAndTitle(STATUS_APPROVED, title, page, size, sortColumn,
+        sortDirection);
     long total = newsRepository.countByStatusAndTitle(STATUS_APPROVED, title);
     return new PaginatedData<>(items, (int) total, size);
   }
 
   @Override
-  public PaginatedData<NewsModel> getApprovedNewsByTopic(Long topicId, int page, int size, String sortColumn, String sortDirection) {
+  public PaginatedData<NewsModel> getApprovedNewsByTopic(Long topicId, int page, int size, String sortColumn,
+      String sortDirection) {
     try {
       List<NewsModel> items = newsRepository.findPageByTopic(topicId, page, size, sortColumn, sortDirection);
       long total = items.size(); // Simplified total for topic-specific view
@@ -182,8 +186,9 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public PaginatedData<NewsModel> getPendingNews(int page, int size, String sortColumn, String sortDirection) {
-    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_PENDING_APPROVAL, page, size, sortColumn, sortDirection);
-    long total = newsRepository.countByStatus(STATUS_PENDING_APPROVAL);
+    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_PENDING, page, size, sortColumn,
+        sortDirection);
+    long total = newsRepository.countByStatus(STATUS_PENDING);
     return new PaginatedData<>(items, (int) total, size);
   }
 

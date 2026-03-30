@@ -25,7 +25,7 @@ public class NewsManagementController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Long startDate,
             @RequestParam(required = false) Long endDate,
-            @RequestParam(defaultValue = "createdAt") String sortColumn,
+            @RequestParam(defaultValue = "created_at") String sortColumn,
             @RequestParam(defaultValue = "desc") String sortDirection) {
 
         long start = startDate != null ? startDate : 0L;
@@ -43,7 +43,7 @@ public class NewsManagementController {
     public ResponseApi<PaginatedData<NewsResponse>> getPendingNews(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortColumn,
+            @RequestParam(defaultValue = "created_at") String sortColumn,
             @RequestParam(defaultValue = "desc") String sortDirection) {
         PaginatedData<NewsModel> pageData = newsUsecase.getPendingNews(page, size, sortColumn, sortDirection);
         List<NewsResponse> items = pageData.getItems().stream()
