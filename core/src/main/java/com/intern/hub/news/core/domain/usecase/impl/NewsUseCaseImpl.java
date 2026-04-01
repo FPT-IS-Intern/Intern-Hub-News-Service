@@ -3,8 +3,6 @@ package com.intern.hub.news.core.domain.usecase.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.BadRequestException;
 import com.intern.hub.library.common.exception.ExceptionConstant;
@@ -20,7 +18,6 @@ import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Service
 @Slf4j
 @RequiredArgsConstructor
 public class NewsUseCaseImpl implements NewsUseCase {
