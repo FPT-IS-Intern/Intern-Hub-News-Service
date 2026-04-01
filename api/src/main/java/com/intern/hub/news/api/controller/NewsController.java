@@ -18,12 +18,12 @@ import java.util.List;
 @RequestMapping("/news")
 public class NewsController {
 
-  private final NewsUseCase newsUsecase;
+  private final NewsUseCase newsUseCase;
   private final NewsMapper newsMapper;
 
   @GetMapping("/{id:[0-9]+}")
   public ResponseApi<NewsResponse> getById(@PathVariable Long id) {
-    return ResponseApi.ok(newsMapper.toResponse(newsUsecase.getById(id)));
+    return ResponseApi.ok(newsMapper.toResponse(newsUseCase.getById(id)));
   }
 
   @GetMapping("/isFeatured")
@@ -32,7 +32,7 @@ public class NewsController {
       @RequestParam(defaultValue = "10") int size,
       @RequestParam(defaultValue = "created_at") String sortColumn,
       @RequestParam(defaultValue = "desc") String sortDirection) {
-    PaginatedData<NewsModel> pageData = newsUsecase.getAllNewsIsFeatured(page, size, sortColumn, sortDirection);
+    PaginatedData<NewsModel> pageData = newsUseCase.getAllNewsIsFeatured(page, size, sortColumn, sortDirection);
     List<NewsResponse> items = pageData.getItems().stream()
         .map(newsMapper::toSummaryResponse).toList();
     PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
@@ -45,7 +45,7 @@ public class NewsController {
       @RequestParam(defaultValue = "10") int size,
       @RequestParam(defaultValue = "created_at") String sortColumn,
       @RequestParam(defaultValue = "desc") String sortDirection) {
-    PaginatedData<NewsModel> pageData = newsUsecase.getApprovedNews(page, size, sortColumn, sortDirection);
+    PaginatedData<NewsModel> pageData = newsUseCase.getApprovedNews(page, size, sortColumn, sortDirection);
     List<NewsResponse> items = pageData.getItems().stream()
         .map(newsMapper::toSummaryResponse).toList();
     PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
@@ -60,7 +60,7 @@ public class NewsController {
     String sortColumn = request.getSortColumn() != null ? request.getSortColumn() : "createdAt";
     String sortDirection = request.getSortDirection() != null ? request.getSortDirection() : "desc";
 
-    PaginatedData<NewsModel> pageData = newsUsecase.searchApprovedNewsByTitle(request.getTitle(), page, size,
+    PaginatedData<NewsModel> pageData = newsUseCase.searchApprovedNewsByTitle(request.getTitle(), page, size,
         sortColumn, sortDirection);
     List<NewsResponse> items = pageData.getItems().stream()
         .map(newsMapper::toSummaryResponse).toList();
@@ -75,7 +75,7 @@ public class NewsController {
       @RequestParam(defaultValue = "10") int size,
       @RequestParam(defaultValue = "created_at") String sortColumn,
       @RequestParam(defaultValue = "desc") String sortDirection) {
-    PaginatedData<NewsModel> pageData = newsUsecase.getApprovedNewsByTopic(topicId, page, size, sortColumn,
+    PaginatedData<NewsModel> pageData = newsUseCase.getApprovedNewsByTopic(topicId, page, size, sortColumn,
         sortDirection);
     List<NewsResponse> items = pageData.getItems().stream()
         .map(newsMapper::toSummaryResponse).toList();
@@ -85,13 +85,13 @@ public class NewsController {
 
   @GetMapping("/latest")
   public ResponseApi<List<NewsResponse>> getTop3LatestNews() {
-    List<NewsResponse> latest = newsUsecase.getTop3LatestNews().stream().map(newsMapper::toSummaryResponse).toList();
+    List<NewsResponse> latest = newsUseCase.getTop3LatestNews().stream().map(newsMapper::toSummaryResponse).toList();
     return ResponseApi.ok(latest);
   }
 
   @GetMapping("/latest-featured")
   public ResponseApi<List<NewsBriefResponse>> getLatestFeaturedBrief(@RequestParam(defaultValue = "5") int total) {
-    List<NewsBriefResponse> featured = newsUsecase.getLatestFeaturedNews(total).stream()
+    List<NewsBriefResponse> featured = newsUseCase.getLatestFeaturedNews(total).stream()
         .map(model -> {
           var brief = new NewsBriefResponse();
           brief.setId(model.getId());

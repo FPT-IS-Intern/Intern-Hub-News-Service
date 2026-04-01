@@ -24,9 +24,21 @@ public interface NewsJpaRepository extends JpaRepository<News, Long> {
     @EntityGraph(attributePaths = { "status", "topics" })
     Page<NewsSummaryProjection> findProjectedByIsFeatured(boolean featured, Pageable pageable);
 
+    @EntityGraph(attributePaths = { "status", "topics" })
+    Page<NewsSummaryProjection> findProjectedByIsFeaturedAndStatus_Name(boolean featured, String statusName,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = { "status", "topics" })
+    Page<NewsSummaryProjection> findProjectedByIsFeaturedAndStatus_Id(boolean featured, Long statusId,
+            Pageable pageable);
+
     long countByStatus_Name(String statusName);
 
     long countByIsFeatured(boolean featured);
+
+    long countByIsFeaturedAndStatus_Name(boolean featured, String statusName);
+
+    long countByIsFeaturedAndStatus_Id(boolean featured, Long statusId);
 
     @Override
     @EntityGraph(attributePaths = { "status", "topics" })

@@ -3,7 +3,6 @@ package com.intern.hub.news.api.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,7 +26,6 @@ public class UpdateNewsRequest {
   @Size(max = 255)
   private String shortDescription;
 
-  @NotEmpty
   private List<Long> topicIds;
 
   @NotNull

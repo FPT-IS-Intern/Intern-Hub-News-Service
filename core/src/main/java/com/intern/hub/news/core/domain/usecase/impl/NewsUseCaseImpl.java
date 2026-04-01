@@ -2,7 +2,6 @@ package com.intern.hub.news.core.domain.usecase.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.intern.hub.news.core.domain.model.NewsTopicModel;
 
 import org.springframework.stereotype.Service;
 
@@ -13,6 +12,7 @@ import com.intern.hub.news.core.domain.command.CreateNewsCommand;
 import com.intern.hub.news.core.domain.command.UpdateNewsCommand;
 import com.intern.hub.news.core.domain.model.NewsModel;
 import com.intern.hub.news.core.domain.model.NewsStatusModel;
+import com.intern.hub.news.core.domain.model.NewsTopicModel;
 import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.core.domain.port.NewsStatusRepository;
 import com.intern.hub.news.core.domain.usecase.NewsUseCase;
@@ -91,15 +91,20 @@ public class NewsUseCaseImpl implements NewsUseCase {
           : new ArrayList<>());
       existing.setFeatured(command.getFeatured() != null && command.getFeatured());
 
-      // Update forces status back to pending for re-approval
-      existing.setStatusId(getStatusIdByName(STATUS_PENDING));
+      // Use the provided status if available, else force pending
+      if (command.getStatusId() != null) {
+        existing.setStatusId(command.getStatusId());
+      } else {
+        existing.setStatusId(getStatusIdByName(STATUS_PENDING));
+      }
       existing.setUpdatedAt(System.currentTimeMillis());
       return newsRepository.update(existing);
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
       log.error("[News] Cập nhật News thất bại: {}", e.getMessage(), e);
-      throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to update news");
+      throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
+          "Failed to update news: " + e.getMessage());
     }
 
   }
@@ -194,8 +199,10 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public PaginatedData<NewsModel> getAllNewsIsFeatured(int page, int size, String sortColumn, String sortDirection) {
-    List<NewsModel> items = newsRepository.findPageByFeatured(true, page, size, sortColumn, sortDirection);
-    long total = newsRepository.countByFeatured(true);
+    Long approvedStatusId = getStatusIdByName(STATUS_APPROVED);
+    List<NewsModel> items = newsRepository.findPageByFeaturedAndStatusId(true, approvedStatusId, page, size,
+        sortColumn, sortDirection);
+    long total = newsRepository.countByFeaturedAndStatusId(true, approvedStatusId);
     return new PaginatedData<>(items, (int) total, size);
   }
 
@@ -233,10 +240,36 @@ public class NewsUseCaseImpl implements NewsUseCase {
   }
 
   private Long getStatusIdByName(String name) {
-    return newsStatusRepository.findByName(name)
+    Long statusId = newsStatusRepository.findByName(name)
         .map(NewsStatusModel::getId)
-        .orElseThrow(
-            () -> new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Status not found: " + name));
+        .orElse(null);
+
+    // Fallbacks for Vietnamese aliases
+    if (statusId == null) {
+      if ("PENDING".equalsIgnoreCase(name)) {
+        statusId = newsStatusRepository.findByName("CHỜ DUYỆT")
+            .map(NewsStatusModel::getId).orElse(null);
+      } else if ("APPROVED".equalsIgnoreCase(name)) {
+        statusId = newsStatusRepository.findByName("QUYẾT ĐỊNH ĐĂNG")
+            .map(NewsStatusModel::getId).orElse(null);
+        if (statusId == null) {
+          statusId = newsStatusRepository.findByName("ĐÃ DUYỆT")
+              .map(NewsStatusModel::getId).orElse(null);
+        }
+        if (statusId == null) {
+          statusId = newsStatusRepository.findByName("Đã Duyệt")
+              .map(NewsStatusModel::getId).orElse(null);
+        }
+      } else if ("DRAFT".equalsIgnoreCase(name)) {
+        statusId = newsStatusRepository.findByName("BẢN NHÁP")
+            .map(NewsStatusModel::getId).orElse(null);
+      }
+    }
+
+    if (statusId == null) {
+      throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Status not found: " + name);
+    }
+    return statusId;
   }
 
   private void validateInput(String title, String body, String shortDescription) {

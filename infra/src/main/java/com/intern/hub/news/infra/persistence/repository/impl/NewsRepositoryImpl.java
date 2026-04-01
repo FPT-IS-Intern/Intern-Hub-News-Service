@@ -3,15 +3,16 @@ package com.intern.hub.news.infra.persistence.repository.impl;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.intern.hub.news.infra.persistence.repository.jpa.NewsJpaRepository;
 import com.intern.hub.news.core.domain.model.NewsModel;
 import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.infra.mapper.NewsEntityMapper;
 import com.intern.hub.news.infra.persistence.entity.News;
+import com.intern.hub.news.infra.persistence.repository.jpa.NewsJpaRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Repository
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class NewsRepositoryImpl implements NewsRepository {
 
   private static final String STATUS_APPROVED = "APPROVED";
@@ -98,6 +100,24 @@ public class NewsRepositoryImpl implements NewsRepository {
   }
 
   @Override
+  public List<NewsModel> findPageByFeaturedAndStatus(boolean featured, String status, int page, int size,
+      String sortColumn, String sortDirection) {
+    Sort sort = getSort(sortColumn, sortDirection);
+    return newsJpaRepository
+        .findProjectedByIsFeaturedAndStatus_Name(featured, status, PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
+  public List<NewsModel> findPageByFeaturedAndStatusId(boolean featured, Long statusId, int page, int size,
+      String sortColumn, String sortDirection) {
+    Sort sort = getSort(sortColumn, sortDirection);
+    return newsJpaRepository
+        .findProjectedByIsFeaturedAndStatus_Id(featured, statusId, PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+
+  @Override
   public List<NewsModel> findPageByTopic(Long topicId, int page, int size, String sortColumn, String sortDirection) {
     Sort sort = getSort(sortColumn, sortDirection);
     return newsJpaRepository
@@ -152,6 +172,16 @@ public class NewsRepositoryImpl implements NewsRepository {
   @Override
   public long countByFeatured(boolean featured) {
     return newsJpaRepository.countByIsFeatured(featured);
+  }
+
+  @Override
+  public long countByFeaturedAndStatus(boolean featured, String status) {
+    return newsJpaRepository.countByIsFeaturedAndStatus_Name(featured, status);
+  }
+
+  @Override
+  public long countByFeaturedAndStatusId(boolean featured, Long statusId) {
+    return newsJpaRepository.countByIsFeaturedAndStatus_Id(featured, statusId);
   }
 
   @Override
