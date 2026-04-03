@@ -29,7 +29,11 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yml
     default-schema: ${SCHEMA_NAME}
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   web:
     resources:
       add-mappings: false
@@ -63,9 +67,6 @@ security:
   internal-secret: ${INTERNAL_SECRET_KEY:defaultSecretValue}
   internal-path-prefix: /news/internal
   excluded-paths:
-    - /news/health
-    - /news
-    - /news/**
     - /v3/api-docs/**
     - /swagger-ui/**
     - /swagger-ui.html
@@ -73,6 +74,17 @@ security:
 services:
   gateway:
     url: ${GATEWAY_URL:http://localhost:8765}
+
+ticket:
+  service:
+    internal-url: ${TICKET_SERVICE_INTERNAL_URL:http://localhost:8081}
+
+news:
+  ticket-type-id: ${NEWS_TICKET_TYPE_ID:5}
+  kafka:
+    ticket-events-enabled: ${NEWS_TICKET_EVENTS_ENABLED:true}
+    ticket-events-topic: ${NEWS_TICKET_EVENTS_TOPIC:ih.ticket.events}
+    ticket-events-group: ${NEWS_TICKET_EVENTS_GROUP:${spring.application.name}-ticket-events}
 
 audit:
   topic: ih-audit-topic

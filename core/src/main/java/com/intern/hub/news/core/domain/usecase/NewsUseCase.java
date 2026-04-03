@@ -15,6 +15,8 @@ public interface NewsUseCase {
 
   NewsModel approve(Long id);
 
+  void approveByTicketId(Long ticketId);
+
   NewsModel getById(Long id);
 
   List<NewsModel> getAll();

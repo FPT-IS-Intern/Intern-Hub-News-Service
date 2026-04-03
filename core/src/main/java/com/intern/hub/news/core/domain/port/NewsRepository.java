@@ -10,6 +10,8 @@ public interface NewsRepository {
 
   Optional<NewsModel> findById(Long id);
 
+  Optional<NewsModel> findByApprovalTicketId(Long approvalTicketId);
+
   List<NewsModel> findAll();
 
   List<NewsModel> findPage(int page, int size, String sortColumn, String sortDirection);
@@ -38,5 +40,7 @@ public interface NewsRepository {
   boolean existsById(Long id);
 
   NewsModel update(NewsModel model);
+
+  void updateApprovalTicketId(Long newsId, Long approvalTicketId, Long updatedAt);
 
 }

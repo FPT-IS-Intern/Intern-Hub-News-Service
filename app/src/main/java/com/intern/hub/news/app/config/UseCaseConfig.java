@@ -1,5 +1,6 @@
 package com.intern.hub.news.app.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,8 +21,12 @@ import com.intern.hub.news.infra.service.feign.TicketServiceFeignClient;
 public class UseCaseConfig {
 
   @Bean
-  public NewsUseCase newsUsecase(NewsRepository newsRepository, NewsStatusRepository newsStatusRepository) {
-    return new NewsUseCaseImpl(newsRepository, newsStatusRepository);
+  public NewsUseCase newsUsecase(
+      NewsRepository newsRepository,
+      NewsStatusRepository newsStatusRepository,
+      TicketService ticketService,
+      @Value("${news.ticket-type-id:5}") Long newsTicketTypeId) {
+    return new NewsUseCaseImpl(newsRepository, newsStatusRepository, ticketService, newsTicketTypeId);
   }
 
   @Bean
@@ -35,8 +40,12 @@ public class UseCaseConfig {
   }
 
   @Bean
-  public TicketService ticketService(TicketServiceFeignClient ticketServiceFeignClient) {
-    return new TicketServiceImpl(ticketServiceFeignClient);
+  public TicketService ticketService(
+      TicketServiceFeignClient ticketServiceFeignClient,
+      @Value("${ticket.service.internal-url:${TICKET_SERVICE_INTERNAL_URL:http://localhost:8081}}") String ticketInternalBaseUrl,
+      @Value("${security.internal-secret}") String internalSecret,
+      tools.jackson.databind.ObjectMapper objectMapper) {
+    return new TicketServiceImpl(ticketServiceFeignClient, objectMapper, ticketInternalBaseUrl, internalSecret);
   }
 
 }

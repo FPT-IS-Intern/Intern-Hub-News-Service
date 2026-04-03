@@ -26,7 +26,8 @@ import lombok.experimental.FieldDefaults;
 @Table(name = "news", indexes = {
     @Index(name = "idx_news_status", columnList = "status_id"),
     @Index(name = "idx_news_featured", columnList = "is_featured"),
-    @Index(name = "idx_news_created_at", columnList = "created_at")
+    @Index(name = "idx_news_created_at", columnList = "created_at"),
+    @Index(name = "idx_news_approval_ticket", columnList = "approval_ticket_id")
 })
 @Getter
 @Setter
@@ -51,6 +52,9 @@ public class News extends AuditEntity {
 
   @Column(nullable = true, length = 255)
   String shortDescription;
+
+  @Column(name = "approval_ticket_id")
+  Long approvalTicketId;
 
   boolean isFeatured;
 

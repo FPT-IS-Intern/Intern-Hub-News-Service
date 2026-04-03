@@ -1,22 +1,27 @@
 package com.intern.hub.news.core.domain.usecase.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.BadRequestException;
 import com.intern.hub.library.common.exception.ExceptionConstant;
 import com.intern.hub.news.core.domain.command.CreateNewsCommand;
+import com.intern.hub.news.core.domain.command.CreateTicketCommand;
 import com.intern.hub.news.core.domain.command.UpdateNewsCommand;
 import com.intern.hub.news.core.domain.model.NewsModel;
 import com.intern.hub.news.core.domain.model.NewsStatusModel;
 import com.intern.hub.news.core.domain.model.NewsTopicModel;
 import com.intern.hub.news.core.domain.port.NewsRepository;
 import com.intern.hub.news.core.domain.port.NewsStatusRepository;
+import com.intern.hub.news.core.domain.port.TicketService;
 import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 
 @Slf4j
 @RequiredArgsConstructor
@@ -27,6 +32,8 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   private final NewsRepository newsRepository;
   private final NewsStatusRepository newsStatusRepository;
+  private final TicketService ticketService;
+  private final Long newsTicketTypeId;
 
   @Override
   public NewsModel create(CreateNewsCommand command) {
@@ -57,8 +64,10 @@ public class NewsUseCaseImpl implements NewsUseCase {
       newsModel.setCreatedBy(command.getUserId());
 
       NewsModel saved = newsRepository.create(newsModel);
-      log.info("[News] Create New Successfully: {}", saved != null ? saved.getId() : "null");
-
+      Long ticketId = createApprovalTicketOrRollback(saved, command.getUserId());
+      newsRepository.updateApprovalTicketId(saved.getId(), ticketId, System.currentTimeMillis());
+      saved.setApprovalTicketId(ticketId);
+      log.info("[News] Create New Successfully: {}", saved.getId());
       return saved;
     } catch (IllegalArgumentException e) {
       throw e;
@@ -110,10 +119,6 @@ public class NewsUseCaseImpl implements NewsUseCase {
   public NewsModel approve(Long id) {
     try {
       NewsModel existing = getById(id);
-      if (!STATUS_PENDING.equals(existing.getStatus())
-          && !STATUS_PENDING.equalsIgnoreCase(existing.getStatus())) {
-        // Allow both variant names just in case
-      }
       existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
       existing.setUpdatedAt(System.currentTimeMillis());
       return newsRepository.update(existing);
@@ -123,6 +128,32 @@ public class NewsUseCaseImpl implements NewsUseCase {
       log.error("[News] Duyệt News thất bại: {}", e.getMessage(), e);
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to approve news");
     }
+  }
+
+  @Override
+  public void approveByTicketId(Long ticketId) {
+    if (ticketId == null) {
+      log.warn("[News][ApproveByTicket] Skip because ticketId is null");
+      return;
+    }
+    log.info("[News][ApproveByTicket] Start processing ticketId={}", ticketId);
+    NewsModel existing = newsRepository.findByApprovalTicketId(ticketId).orElse(null);
+    if (existing == null) {
+      log.warn("[News][ApproveByTicket] No news found with approvalTicketId={}", ticketId);
+      return;
+    }
+    if (existing.getStatus() != null && STATUS_APPROVED.equalsIgnoreCase(existing.getStatus())) {
+      log.info("[News][ApproveByTicket] News id={} already approved. Skip update.", existing.getId());
+      return;
+    }
+    if (!ticketService.isTicketApproved(ticketId)) {
+      log.warn("[News][ApproveByTicket] Ticket id={} is not APPROVED yet. Skip update.", ticketId);
+      return;
+    }
+    existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
+    existing.setUpdatedAt(System.currentTimeMillis());
+    newsRepository.update(existing);
+    log.info("[News][ApproveByTicket] Updated news id={} to APPROVED via ticketId={}", existing.getId(), ticketId);
   }
 
   @Override
@@ -243,22 +274,22 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
     // Fallbacks for Vietnamese aliases
     if (statusId == null) {
-      if ("PENDING".equalsIgnoreCase(name)) {
-        statusId = newsStatusRepository.findByName("CHỜ DUYỆT")
+      if (STATUS_PENDING.equalsIgnoreCase(name)) {
+        statusId = newsStatusRepository.findByName("PENDING")
             .map(NewsStatusModel::getId).orElse(null);
-      } else if ("APPROVED".equalsIgnoreCase(name)) {
-        statusId = newsStatusRepository.findByName("QUYẾT ĐỊNH ĐĂNG")
+      } else if (STATUS_APPROVED.equalsIgnoreCase(name)) {
+        statusId = newsStatusRepository.findByName("APPROVED")
             .map(NewsStatusModel::getId).orElse(null);
         if (statusId == null) {
-          statusId = newsStatusRepository.findByName("ĐÃ DUYỆT")
+          statusId = newsStatusRepository.findByName("APPROVED")
               .map(NewsStatusModel::getId).orElse(null);
         }
         if (statusId == null) {
-          statusId = newsStatusRepository.findByName("Đã Duyệt")
+          statusId = newsStatusRepository.findByName("APPROVED")
               .map(NewsStatusModel::getId).orElse(null);
         }
       } else if ("DRAFT".equalsIgnoreCase(name)) {
-        statusId = newsStatusRepository.findByName("BẢN NHÁP")
+        statusId = newsStatusRepository.findByName("DRAFT")
             .map(NewsStatusModel::getId).orElse(null);
       }
     }
@@ -279,5 +310,34 @@ public class NewsUseCaseImpl implements NewsUseCase {
     if (shortDescription == null || shortDescription.isBlank()) {
       throw new IllegalArgumentException("Short description is required");
     }
+  }
+
+  private Map<String, Object> buildNewsTicketPayload(NewsModel news) {
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("newsId", news.getId());
+    payload.put("title", news.getTitle());
+    payload.put("shortDescription", news.getShortDescription());
+    return payload;
+  }
+
+  private Long createApprovalTicketOrRollback(NewsModel saved, Long userId) {
+    Long ticketId;
+    try {
+      ticketId = ticketService.createTicket(new CreateTicketCommand(
+          userId,
+          newsTicketTypeId,
+          buildNewsTicketPayload(saved)));
+    } catch (Exception ex) {
+      newsRepository.deleteById(saved.getId());
+      throw ex;
+    }
+
+    if (ticketId == null) {
+      newsRepository.deleteById(saved.getId());
+      throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
+          "Failed to create approval ticket for news");
+    }
+
+    return ticketId;
   }
 }

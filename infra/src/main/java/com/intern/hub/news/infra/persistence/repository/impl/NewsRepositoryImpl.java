@@ -70,6 +70,11 @@ public class NewsRepositoryImpl implements NewsRepository {
   }
 
   @Override
+  public Optional<NewsModel> findByApprovalTicketId(Long approvalTicketId) {
+    return newsJpaRepository.findByApprovalTicketId(approvalTicketId).map(newsMapper::toModel);
+  }
+
+  @Override
   public List<NewsModel> findAll() {
     return newsJpaRepository.findAll().stream().map(newsMapper::toModel).toList();
   }
@@ -198,5 +203,10 @@ public class NewsRepositoryImpl implements NewsRepository {
   public NewsModel update(NewsModel model) {
     News entity = newsMapper.toEntity(model);
     return newsMapper.toModel(newsJpaRepository.save(entity));
+  }
+
+  @Override
+  public void updateApprovalTicketId(Long newsId, Long approvalTicketId, Long updatedAt) {
+    newsJpaRepository.updateApprovalTicketId(newsId, approvalTicketId, updatedAt);
   }
 }
