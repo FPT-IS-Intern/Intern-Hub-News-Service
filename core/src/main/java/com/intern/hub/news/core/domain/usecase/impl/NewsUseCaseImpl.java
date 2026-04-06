@@ -3,8 +3,10 @@ package com.intern.hub.news.core.domain.usecase.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.text.Normalizer;
 import java.util.stream.Collectors;
 
 import com.intern.hub.library.common.dto.PaginatedData;
@@ -30,6 +32,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   private static final String STATUS_PENDING = "PENDING";
   private static final String STATUS_APPROVED = "APPROVED";
+  private static final String STATUS_DRAFT = "DRAFT";
 
   private final NewsRepository newsRepository;
   private final NewsStatusRepository newsStatusRepository;
@@ -76,7 +79,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
-      log.error("[News] Tạo News thất bại: {}", e.getMessage(), e);
+      log.error("[News] Táº¡o News tháº¥t báº¡i: {}", e.getMessage(), e);
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
           "Failed to create news: " + e.getMessage());
     }
@@ -112,7 +115,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
-      log.error("[News] Cập nhật News thất bại: {}", e.getMessage(), e);
+      log.error("[News] Cáº­p nháº­t News tháº¥t báº¡i: {}", e.getMessage(), e);
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
           "Failed to update news: " + e.getMessage());
     }
@@ -129,7 +132,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
-      log.error("[News] Duyệt News thất bại: {}", e.getMessage(), e);
+      log.error("[News] Duyá»‡t News tháº¥t báº¡i: {}", e.getMessage(), e);
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to approve news");
     }
   }
@@ -216,7 +219,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       long total = items.size(); // Simplified total for topic-specific view
       return new PaginatedData<>(items, (int) total, size);
     } catch (Exception e) {
-      log.error("[News] Lỗi khi lấy tin tức theo topic {}: {}", topicId, e.getMessage());
+      log.error("[News] Lá»—i khi láº¥y tin tá»©c theo topic {}: {}", topicId, e.getMessage());
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to get news by topic");
     }
   }
@@ -243,7 +246,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     try {
       return newsRepository.findPageByFeatured(true, 0, total, "updatedAt", "desc");
     } catch (Exception e) {
-      log.error("[News] Lỗi khi lấy tin tức nổi bật: {}", e.getMessage());
+      log.error("[News] Lá»—i khi láº¥y tin tá»©c ná»•i báº­t: {}", e.getMessage());
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to get latest featured news");
     }
   }
@@ -272,36 +275,74 @@ public class NewsUseCaseImpl implements NewsUseCase {
   }
 
   private Long getStatusIdByName(String name) {
-    Long statusId = newsStatusRepository.findByName(name)
-        .map(NewsStatusModel::getId)
-        .orElse(null);
+    List<NewsStatusModel> allStatuses = newsStatusRepository.findAll();
+    String targetKey = toStatusKey(name);
+    if (targetKey == null) {
+      targetKey = normalizeStatusName(name);
+    }
 
-    // Fallbacks for Vietnamese aliases
-    if (statusId == null) {
-      if (STATUS_PENDING.equalsIgnoreCase(name)) {
-        statusId = newsStatusRepository.findByName("PENDING")
-            .map(NewsStatusModel::getId).orElse(null);
-      } else if (STATUS_APPROVED.equalsIgnoreCase(name)) {
-        statusId = newsStatusRepository.findByName("APPROVED")
-            .map(NewsStatusModel::getId).orElse(null);
-        if (statusId == null) {
-          statusId = newsStatusRepository.findByName("APPROVED")
-              .map(NewsStatusModel::getId).orElse(null);
-        }
-        if (statusId == null) {
-          statusId = newsStatusRepository.findByName("APPROVED")
-              .map(NewsStatusModel::getId).orElse(null);
-        }
-      } else if ("DRAFT".equalsIgnoreCase(name)) {
-        statusId = newsStatusRepository.findByName("DRAFT")
-            .map(NewsStatusModel::getId).orElse(null);
+    for (NewsStatusModel status : allStatuses) {
+      if (status == null || status.getName() == null) {
+        continue;
+      }
+      String statusKey = toStatusKey(status.getName());
+      if (statusKey == null) {
+        statusKey = normalizeStatusName(status.getName());
+      }
+      if (targetKey.equals(statusKey)) {
+        return status.getId();
       }
     }
 
-    if (statusId == null) {
-      throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Status not found: " + name);
+    String availableStatuses = allStatuses.stream()
+        .map(NewsStatusModel::getName)
+        .filter(Objects::nonNull)
+        .collect(Collectors.joining(", "));
+
+    throw new BadRequestException(
+        ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
+        "Status not found: " + name + ". Available statuses: " + availableStatuses);
+  }
+
+  private String toStatusKey(String input) {
+    String normalized = normalizeStatusName(input);
+    if (normalized.isEmpty()) {
+      return null;
     }
-    return statusId;
+
+    if ("PENDING".equals(normalized) || "CHO DUYET".equals(normalized)) {
+      return STATUS_PENDING;
+    }
+
+    if ("APPROVED".equals(normalized)
+        || "APPROVE".equals(normalized)
+        || "DA DUYET".equals(normalized)
+        || "QUYET DINH DANG".equals(normalized)) {
+      return STATUS_APPROVED;
+    }
+
+    if ("DRAFT".equals(normalized)
+        || "LUU NHAP".equals(normalized)
+        || "BAN NHAP".equals(normalized)
+        || "NHAP".equals(normalized)) {
+      return STATUS_DRAFT;
+    }
+
+    return null;
+  }
+
+  private String normalizeStatusName(String input) {
+    if (input == null) {
+      return "";
+    }
+    String normalized = Normalizer.normalize(input, Normalizer.Form.NFD)
+        .replace("đ", "d")
+        .replace("Đ", "D")
+        .replaceAll("\\p{M}", "")
+        .replaceAll("\\s+", " ")
+        .trim()
+        .toUpperCase(Locale.ROOT);
+    return normalized;
   }
 
   private void validateInput(String title, String body, String shortDescription) {
@@ -366,3 +407,4 @@ public class NewsUseCaseImpl implements NewsUseCase {
     return ticketId;
   }
 }
+
