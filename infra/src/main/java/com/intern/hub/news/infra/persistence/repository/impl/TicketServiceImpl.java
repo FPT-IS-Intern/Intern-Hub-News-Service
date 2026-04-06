@@ -49,7 +49,7 @@ public class TicketServiceImpl implements TicketService {
             headers.set("X-Internal-Secret", internalSecret);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    ticketInternalBaseUrl + CREATE_TICKET_URL,
+                    buildCreateTicketUrl(),
                     HttpMethod.POST,
                     new HttpEntity<>(body, headers),
                     String.class);
@@ -78,5 +78,18 @@ public class TicketServiceImpl implements TicketService {
                 && response.data() != null
                 && response.data().ticketDetail() != null
                 && "APPROVED".equalsIgnoreCase(response.data().ticketDetail().status());
+    }
+
+    private String buildCreateTicketUrl() {
+        String baseUrl = ticketInternalBaseUrl == null ? "" : ticketInternalBaseUrl.trim();
+        while (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+
+        if (baseUrl.endsWith(CREATE_TICKET_URL)) {
+            return baseUrl;
+        }
+
+        return baseUrl + CREATE_TICKET_URL;
     }
 }
