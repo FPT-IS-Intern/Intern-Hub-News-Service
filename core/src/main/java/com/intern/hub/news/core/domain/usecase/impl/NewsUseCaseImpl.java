@@ -48,7 +48,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       newsModel.setTitle(command.getTitle());
       newsModel.setBody(command.getBody());
       newsModel.setShortDescription(command.getShortDescription());
-      newsModel.setThumbnail(command.getThumbnail());
+      newsModel.setThumbnail(normalizeThumbnail(command.getThumbnail()));
       newsModel.setTopics(command.getTopicIds() != null
           ? command.getTopicIds().stream().map(tId -> {
             NewsTopicModel tm = new NewsTopicModel();
@@ -79,7 +79,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
-      log.error("[News] Táº¡o News tháº¥t báº¡i: {}", e.getMessage(), e);
+      log.error("[News] TÃ¡ÂºÂ¡o News thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i: {}", e.getMessage(), e);
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
           "Failed to create news: " + e.getMessage());
     }
@@ -94,7 +94,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       existing.setTitle(command.getTitle());
       existing.setBody(command.getBody());
       existing.setShortDescription(command.getShortDescription());
-      existing.setThumbnail(command.getThumbnail());
+      existing.setThumbnail(normalizeThumbnail(command.getThumbnail()));
       existing.setTopics(command.getTopicIds() != null
           ? command.getTopicIds().stream().map(tId -> {
             NewsTopicModel tm = new NewsTopicModel();
@@ -115,7 +115,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
-      log.error("[News] Cáº­p nháº­t News tháº¥t báº¡i: {}", e.getMessage(), e);
+      log.error("[News] CÃ¡ÂºÂ­p nhÃ¡ÂºÂ­t News thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i: {}", e.getMessage(), e);
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
           "Failed to update news: " + e.getMessage());
     }
@@ -132,7 +132,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
-      log.error("[News] Duyá»‡t News tháº¥t báº¡i: {}", e.getMessage(), e);
+      log.error("[News] DuyÃ¡Â»â€¡t News thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i: {}", e.getMessage(), e);
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to approve news");
     }
   }
@@ -219,7 +219,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       long total = items.size(); // Simplified total for topic-specific view
       return new PaginatedData<>(items, (int) total, size);
     } catch (Exception e) {
-      log.error("[News] Lá»—i khi láº¥y tin tá»©c theo topic {}: {}", topicId, e.getMessage());
+      log.error("[News] LÃ¡Â»â€”i khi lÃ¡ÂºÂ¥y tin tÃ¡Â»Â©c theo topic {}: {}", topicId, e.getMessage());
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to get news by topic");
     }
   }
@@ -246,7 +246,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
     try {
       return newsRepository.findPageByFeatured(true, 0, total, "updatedAt", "desc");
     } catch (Exception e) {
-      log.error("[News] Lá»—i khi láº¥y tin tá»©c ná»•i báº­t: {}", e.getMessage());
+      log.error("[News] LÃ¡Â»â€”i khi lÃ¡ÂºÂ¥y tin tÃ¡Â»Â©c nÃ¡Â»â€¢i bÃ¡ÂºÂ­t: {}", e.getMessage());
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to get latest featured news");
     }
   }
@@ -336,13 +336,16 @@ public class NewsUseCaseImpl implements NewsUseCase {
       return "";
     }
     String normalized = Normalizer.normalize(input, Normalizer.Form.NFD)
-        .replace("đ", "d")
-        .replace("Đ", "D")
+         .replace("\u0111", "d")
+         .replace("\u0110", "D")
         .replaceAll("\\p{M}", "")
         .replaceAll("\\s+", " ")
         .trim()
         .toUpperCase(Locale.ROOT);
     return normalized;
+  }
+  private String normalizeThumbnail(String thumbnail) {
+    return thumbnail == null ? "" : thumbnail;
   }
 
   private void validateInput(String title, String body, String shortDescription) {
