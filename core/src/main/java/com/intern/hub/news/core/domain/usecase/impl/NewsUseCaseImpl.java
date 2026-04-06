@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.exception.BadRequestException;
@@ -64,7 +66,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       newsModel.setCreatedBy(command.getUserId());
 
       NewsModel saved = newsRepository.create(newsModel);
-      if (!pendingStatusId.equals(statusId)) {
+      if (pendingStatusId.equals(statusId)) {
         Long ticketId = createApprovalTicketOrRollback(saved, command.getUserId());
         newsRepository.updateApprovalTicketId(saved.getId(), ticketId, System.currentTimeMillis());
         saved.setApprovalTicketId(ticketId);
@@ -316,9 +318,30 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   private Map<String, Object> buildNewsTicketPayload(NewsModel news) {
     Map<String, Object> payload = new HashMap<>();
-    payload.put("newsId", news.getId());
+    payload.put("news_id", String.valueOf(news.getId()));
     payload.put("title", news.getTitle());
-    payload.put("shortDescription", news.getShortDescription());
+    payload.put("summary", news.getShortDescription());
+    payload.put("content", news.getBody());
+    payload.put("reason", news.getShortDescription());
+    payload.put("thumbnail_url", news.getThumbnail());
+    payload.put("preview_url", "/news/" + news.getId());
+
+    String category = "";
+    if (news.getTopics() != null && !news.getTopics().isEmpty()) {
+      category = news.getTopics().stream()
+          .map(NewsTopicModel::getId)
+          .filter(Objects::nonNull)
+          .map(String::valueOf)
+          .collect(Collectors.joining(","));
+    }
+    payload.put("category", category);
+
+    List<String> imageUrls = new ArrayList<>();
+    if (news.getThumbnail() != null && !news.getThumbnail().isBlank()) {
+      imageUrls.add(news.getThumbnail());
+    }
+    payload.put("image_urls", imageUrls);
+
     return payload;
   }
 
