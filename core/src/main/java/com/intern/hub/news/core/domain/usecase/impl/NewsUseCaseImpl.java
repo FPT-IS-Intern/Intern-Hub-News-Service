@@ -22,7 +22,6 @@ import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 @RequiredArgsConstructor
 public class NewsUseCaseImpl implements NewsUseCase {
@@ -53,9 +52,10 @@ public class NewsUseCaseImpl implements NewsUseCase {
           }).toList()
           : new java.util.ArrayList<>());
 
+      Long pendingStatusId = getStatusIdByName(STATUS_PENDING);
       Long statusId = command.getStatusId();
       if (statusId == null) {
-        statusId = getStatusIdByName(STATUS_PENDING);
+        statusId = pendingStatusId;
       }
       newsModel.setStatusId(statusId);
       newsModel.setFeatured(command.getFeatured() != null && command.getFeatured());
@@ -64,9 +64,11 @@ public class NewsUseCaseImpl implements NewsUseCase {
       newsModel.setCreatedBy(command.getUserId());
 
       NewsModel saved = newsRepository.create(newsModel);
-      Long ticketId = createApprovalTicketOrRollback(saved, command.getUserId());
-      newsRepository.updateApprovalTicketId(saved.getId(), ticketId, System.currentTimeMillis());
-      saved.setApprovalTicketId(ticketId);
+      if (!pendingStatusId.equals(statusId)) {
+        Long ticketId = createApprovalTicketOrRollback(saved, command.getUserId());
+        newsRepository.updateApprovalTicketId(saved.getId(), ticketId, System.currentTimeMillis());
+        saved.setApprovalTicketId(ticketId);
+      }
       log.info("[News] Create New Successfully: {}", saved.getId());
       return saved;
     } catch (IllegalArgumentException e) {

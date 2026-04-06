@@ -25,7 +25,7 @@ public class NewsEntityMapper {
     newsModel.setCreatedAt(projection.getCreatedAt());
     newsModel.setUpdatedAt(projection.getUpdatedAt());
     newsModel.setFeatured(projection.isFeatured());
-    newsModel.setTopics(projection.getTopics() != null 
+    newsModel.setTopics(projection.getTopics() != null
         ? projection.getTopics().stream().map(topicMapper::toModel).toList()
         : new java.util.ArrayList<>());
     newsModel.setStatus(projection.getStatus() != null ? projection.getStatus().getName() : null);
