@@ -34,8 +34,13 @@ public class TicketApprovalEventConsumer {
             log.info("[News][Kafka] Received ticket event message: {}", message);
             Map<String, Object> event = parseEvent(message);
             Long ticketId = extractLong(event.get("ticketId"));
+            Long approverId = extractLong(event.get("approverId"));
             if (ticketId == null) {
                 log.warn("[News][Kafka] Skip event because ticketId is missing. Parsed event: {}", event);
+                return;
+            }
+            if (approverId == null) {
+                log.debug("[News][Kafka] Skip non-approval event for ticketId={} (approverId missing)", ticketId);
                 return;
             }
             log.info("[News][Kafka] Processing ticket approval event for ticketId={}", ticketId);

@@ -146,23 +146,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
       return;
     }
     log.info("[News][ApproveByTicket] Start processing ticketId={}", ticketId);
-    NewsModel existing = newsRepository.findByApprovalTicketId(ticketId).orElse(null);
-    if (existing == null) {
-      log.warn("[News][ApproveByTicket] No news found with approvalTicketId={}", ticketId);
-      return;
-    }
-    if (existing.getStatus() != null && STATUS_APPROVED.equalsIgnoreCase(existing.getStatus())) {
-      log.info("[News][ApproveByTicket] News id={} already approved. Skip update.", existing.getId());
-      return;
-    }
-    if (!waitForApprovedTicket(ticketId)) {
-      log.warn("[News][ApproveByTicket] Ticket id={} is not APPROVED after retries. Skip update.", ticketId);
-      return;
-    }
-    existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
-    existing.setUpdatedAt(System.currentTimeMillis());
-    newsRepository.update(existing);
-    log.info("[News][ApproveByTicket] Updated news id={} to APPROVED via ticketId={}", existing.getId(), ticketId);
+    markNewsApprovedByTicketId(ticketId);
   }
 
   @Override
@@ -189,10 +173,29 @@ public class NewsUseCaseImpl implements NewsUseCase {
         continue;
       }
       candidateCount++;
-      approveByTicketId(pendingItem.getApprovalTicketId());
+      Long ticketId = pendingItem.getApprovalTicketId();
+      if (waitForApprovedTicket(ticketId)) {
+        markNewsApprovedByTicketId(ticketId);
+      }
     }
     log.info("[News][ReconcilePending] processed {} candidate tickets out of {} pending news", candidateCount,
         pendingNews.size());
+  }
+
+  private void markNewsApprovedByTicketId(Long ticketId) {
+    NewsModel existing = newsRepository.findByApprovalTicketId(ticketId).orElse(null);
+    if (existing == null) {
+      log.warn("[News][ApproveByTicket] No news found with approvalTicketId={}", ticketId);
+      return;
+    }
+    if (existing.getStatus() != null && STATUS_APPROVED.equalsIgnoreCase(existing.getStatus())) {
+      log.info("[News][ApproveByTicket] News id={} already approved. Skip update.", existing.getId());
+      return;
+    }
+    existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
+    existing.setUpdatedAt(System.currentTimeMillis());
+    newsRepository.update(existing);
+    log.info("[News][ApproveByTicket] Updated news id={} to APPROVED via ticketId={}", existing.getId(), ticketId);
   }
 
   private boolean waitForApprovedTicket(Long ticketId) {
