@@ -73,11 +73,35 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public boolean isTicketApproved(Long ticketId) {
-        var response = ticketServiceFeignClient.getTicketDetail(ticketId, internalSecret);
-        return response != null
-                && response.data() != null
-                && response.data().ticketDetail() != null
-                && "APPROVED".equalsIgnoreCase(response.data().ticketDetail().status());
+        if (ticketId == null) {
+            return false;
+        }
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Secret", internalSecret);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    buildTicketDetailUrl(ticketId),
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    String.class);
+
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.isBlank()) {
+                return false;
+            }
+
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode statusNode = root.path("data").path("ticketDetail").path("status");
+            if (statusNode.isMissingNode() || statusNode.isNull()) {
+                return false;
+            }
+
+            return "APPROVED".equalsIgnoreCase(statusNode.asText());
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private String buildCreateTicketUrl() {
@@ -91,5 +115,9 @@ public class TicketServiceImpl implements TicketService {
         }
 
         return baseUrl + CREATE_TICKET_URL;
+    }
+
+    private String buildTicketDetailUrl(Long ticketId) {
+        return buildCreateTicketUrl() + "/" + ticketId;
     }
 }
