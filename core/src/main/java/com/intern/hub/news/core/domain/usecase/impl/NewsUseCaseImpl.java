@@ -33,6 +33,8 @@ public class NewsUseCaseImpl implements NewsUseCase {
   private static final String STATUS_PENDING = "PENDING";
   private static final String STATUS_APPROVED = "APPROVED";
   private static final String STATUS_DRAFT = "DRAFT";
+  private static final int TICKET_APPROVAL_MAX_RETRY = 5;
+  private static final long TICKET_APPROVAL_RETRY_DELAY_MS = 600L;
 
   private final NewsRepository newsRepository;
   private final NewsStatusRepository newsStatusRepository;
@@ -153,14 +155,37 @@ public class NewsUseCaseImpl implements NewsUseCase {
       log.info("[News][ApproveByTicket] News id={} already approved. Skip update.", existing.getId());
       return;
     }
-    if (!ticketService.isTicketApproved(ticketId)) {
-      log.warn("[News][ApproveByTicket] Ticket id={} is not APPROVED yet. Skip update.", ticketId);
+    if (!waitForApprovedTicket(ticketId)) {
+      log.warn("[News][ApproveByTicket] Ticket id={} is not APPROVED after retries. Skip update.", ticketId);
       return;
     }
     existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
     existing.setUpdatedAt(System.currentTimeMillis());
     newsRepository.update(existing);
     log.info("[News][ApproveByTicket] Updated news id={} to APPROVED via ticketId={}", existing.getId(), ticketId);
+  }
+
+  private boolean waitForApprovedTicket(Long ticketId) {
+    for (int attempt = 1; attempt <= TICKET_APPROVAL_MAX_RETRY; attempt++) {
+      try {
+        if (ticketService.isTicketApproved(ticketId)) {
+          return true;
+        }
+      } catch (Exception ex) {
+        log.warn("[News][ApproveByTicket] Failed to check ticket status, ticketId={}, attempt={}/{}: {}",
+            ticketId, attempt, TICKET_APPROVAL_MAX_RETRY, ex.getMessage());
+      }
+
+      if (attempt < TICKET_APPROVAL_MAX_RETRY) {
+        try {
+          Thread.sleep(TICKET_APPROVAL_RETRY_DELAY_MS);
+        } catch (InterruptedException interruptedException) {
+          Thread.currentThread().interrupt();
+          return false;
+        }
+      }
+    }
+    return false;
   }
 
   @Override
