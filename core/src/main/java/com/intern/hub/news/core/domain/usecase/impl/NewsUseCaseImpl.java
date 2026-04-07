@@ -222,17 +222,19 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public PaginatedData<NewsModel> getApprovedNews(int page, int size, String sortColumn, String sortDirection) {
-    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_APPROVED, page, size, sortColumn, sortDirection);
-    long total = newsRepository.countByStatus(STATUS_APPROVED);
+    List<String> approvedStatusNames = getStatusNamesByMode(STATUS_APPROVED);
+    List<NewsModel> items = newsRepository.findPageByStatusNames(approvedStatusNames, page, size, sortColumn, sortDirection);
+    long total = newsRepository.countByStatusNames(approvedStatusNames);
     return new PaginatedData<>(items, (int) total, size);
   }
 
   @Override
   public PaginatedData<NewsModel> searchApprovedNewsByTitle(String title, int page, int size, String sortColumn,
       String sortDirection) {
-    List<NewsModel> items = newsRepository.findPageByStatusAndTitle(STATUS_APPROVED, title, page, size, sortColumn,
+    List<String> approvedStatusNames = getStatusNamesByMode(STATUS_APPROVED);
+    List<NewsModel> items = newsRepository.findPageByStatusNamesAndTitle(approvedStatusNames, title, page, size, sortColumn,
         sortDirection);
-    long total = newsRepository.countByStatusAndTitle(STATUS_APPROVED, title);
+    long total = newsRepository.countByStatusNamesAndTitle(approvedStatusNames, title);
     return new PaginatedData<>(items, (int) total, size);
   }
 
@@ -240,7 +242,8 @@ public class NewsUseCaseImpl implements NewsUseCase {
   public PaginatedData<NewsModel> getApprovedNewsByTopic(Long topicId, int page, int size, String sortColumn,
       String sortDirection) {
     try {
-      List<NewsModel> items = newsRepository.findPageByTopic(topicId, page, size, sortColumn, sortDirection);
+      List<String> approvedStatusNames = getStatusNamesByMode(STATUS_APPROVED);
+      List<NewsModel> items = newsRepository.findPageByTopicAndStatusNames(topicId, approvedStatusNames, page, size, sortColumn, sortDirection);
       long total = items.size(); // Simplified total for topic-specific view
       return new PaginatedData<>(items, (int) total, size);
     } catch (Exception e) {
@@ -251,18 +254,19 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public PaginatedData<NewsModel> getPendingNews(int page, int size, String sortColumn, String sortDirection) {
-    List<NewsModel> items = newsRepository.findPageByStatus(STATUS_PENDING, page, size, sortColumn,
+    List<String> pendingStatusNames = getStatusNamesByMode(STATUS_PENDING);
+    List<NewsModel> items = newsRepository.findPageByStatusNames(pendingStatusNames, page, size, sortColumn,
         sortDirection);
-    long total = newsRepository.countByStatus(STATUS_PENDING);
+    long total = newsRepository.countByStatusNames(pendingStatusNames);
     return new PaginatedData<>(items, (int) total, size);
   }
 
   @Override
   public PaginatedData<NewsModel> getAllNewsIsFeatured(int page, int size, String sortColumn, String sortDirection) {
-    Long approvedStatusId = getStatusIdByName(STATUS_APPROVED);
-    List<NewsModel> items = newsRepository.findPageByFeaturedAndStatusId(true, approvedStatusId, page, size,
+    List<String> approvedStatusNames = getStatusNamesByMode(STATUS_APPROVED);
+    List<NewsModel> items = newsRepository.findPageByFeaturedAndStatusNames(true, approvedStatusNames, page, size,
         sortColumn, sortDirection);
-    long total = newsRepository.countByFeaturedAndStatusId(true, approvedStatusId);
+    long total = newsRepository.countByFeaturedAndStatusNames(true, approvedStatusNames);
     return new PaginatedData<>(items, (int) total, size);
   }
 
@@ -279,10 +283,26 @@ public class NewsUseCaseImpl implements NewsUseCase {
   @Override
   public List<NewsModel> getTop3LatestNews() {
     try {
-      return newsRepository.findPageByStatus(STATUS_APPROVED, 0, 3, "createdAt", "desc");
+      return newsRepository.findPageByStatusNames(getStatusNamesByMode(STATUS_APPROVED), 0, 3, "createdAt", "desc");
     } catch (Exception _) {
       throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "Failed to get top 3 latest news");
     }
+  }
+
+  private List<String> getStatusNamesByMode(String mode) {
+    String normalizedMode = mode == null ? "" : mode.trim().toUpperCase(Locale.ROOT);
+    List<String> statusNames = newsStatusRepository.findAll().stream()
+        .filter(Objects::nonNull)
+        .filter(status -> status.getName() != null && !status.getName().isBlank())
+        .filter(status -> normalizedMode.equals(toStatusKey(status.getName())))
+        .map(NewsStatusModel::getName)
+        .distinct()
+        .toList();
+
+    if (statusNames.isEmpty() && !normalizedMode.isBlank()) {
+      return List.of(normalizedMode);
+    }
+    return statusNames;
   }
 
   @Override

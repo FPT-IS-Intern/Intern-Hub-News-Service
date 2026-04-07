@@ -23,6 +23,8 @@ public interface NewsJpaRepository extends JpaRepository<News, Long> {
 
     @EntityGraph(attributePaths = { "status", "topics" })
     Page<NewsSummaryProjection> findProjectedByStatus_Name(String statusName, Pageable pageable);
+    @EntityGraph(attributePaths = { "status", "topics" })
+    Page<NewsSummaryProjection> findProjectedByStatus_NameIn(List<String> statusNames, Pageable pageable);
 
     @EntityGraph(attributePaths = { "status", "topics" })
     Page<NewsSummaryProjection> findProjectedByIsFeatured(boolean featured, Pageable pageable);
@@ -30,16 +32,21 @@ public interface NewsJpaRepository extends JpaRepository<News, Long> {
     @EntityGraph(attributePaths = { "status", "topics" })
     Page<NewsSummaryProjection> findProjectedByIsFeaturedAndStatus_Name(boolean featured, String statusName,
             Pageable pageable);
+    @EntityGraph(attributePaths = { "status", "topics" })
+    Page<NewsSummaryProjection> findProjectedByIsFeaturedAndStatus_NameIn(boolean featured, List<String> statusNames,
+            Pageable pageable);
 
     @EntityGraph(attributePaths = { "status", "topics" })
     Page<NewsSummaryProjection> findProjectedByIsFeaturedAndStatus_Id(boolean featured, Long statusId,
             Pageable pageable);
 
     long countByStatus_Name(String statusName);
+    long countByStatus_NameIn(List<String> statusNames);
 
     long countByIsFeatured(boolean featured);
 
     long countByIsFeaturedAndStatus_Name(boolean featured, String statusName);
+    long countByIsFeaturedAndStatus_NameIn(boolean featured, List<String> statusNames);
 
     long countByIsFeaturedAndStatus_Id(boolean featured, Long statusId);
 
@@ -58,12 +65,19 @@ public interface NewsJpaRepository extends JpaRepository<News, Long> {
     @EntityGraph(attributePaths = { "status", "topics" })
     Page<NewsSummaryProjection> findProjectedByTopics_IdAndStatus_Name(Long topicId, String statusName,
             Pageable pageable);
+    @EntityGraph(attributePaths = { "status", "topics" })
+    Page<NewsSummaryProjection> findProjectedByTopics_IdAndStatus_NameIn(Long topicId, List<String> statusNames,
+            Pageable pageable);
 
     @EntityGraph(attributePaths = { "status", "topics" })
     Page<NewsSummaryProjection> findProjectedByStatus_NameAndTitleContainingIgnoreCase(String statusName, String title,
             Pageable pageable);
+    @EntityGraph(attributePaths = { "status", "topics" })
+    Page<NewsSummaryProjection> findProjectedByStatus_NameInAndTitleContainingIgnoreCase(List<String> statusNames,
+            String title, Pageable pageable);
 
     long countByStatus_NameAndTitleContainingIgnoreCase(String statusName, String title);
+    long countByStatus_NameInAndTitleContainingIgnoreCase(List<String> statusNames, String title);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE News n SET n.approvalTicketId = :approvalTicketId, n.updatedAt = :updatedAt WHERE n.id = :newsId")

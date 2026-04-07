@@ -94,6 +94,17 @@ public class NewsRepositoryImpl implements NewsRepository {
         .findProjectedByStatus_Name(status, PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
+  @Override
+  public List<NewsModel> findPageByStatusNames(List<String> statusNames, int page, int size, String sortColumn,
+      String sortDirection) {
+    if (statusNames == null || statusNames.isEmpty()) {
+      return List.of();
+    }
+    Sort sort = getSort(sortColumn, sortDirection);
+    return newsJpaRepository
+        .findProjectedByStatus_NameIn(statusNames, PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
 
   @Override
   public List<NewsModel> findPageByFeatured(boolean featured, int page, int size, String sortColumn,
@@ -110,6 +121,17 @@ public class NewsRepositoryImpl implements NewsRepository {
     Sort sort = getSort(sortColumn, sortDirection);
     return newsJpaRepository
         .findProjectedByIsFeaturedAndStatus_Name(featured, status, PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+  @Override
+  public List<NewsModel> findPageByFeaturedAndStatusNames(boolean featured, List<String> statusNames, int page,
+      int size, String sortColumn, String sortDirection) {
+    if (statusNames == null || statusNames.isEmpty()) {
+      return List.of();
+    }
+    Sort sort = getSort(sortColumn, sortDirection);
+    return newsJpaRepository
+        .findProjectedByIsFeaturedAndStatus_NameIn(featured, statusNames, PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
 
@@ -129,6 +151,17 @@ public class NewsRepositoryImpl implements NewsRepository {
         .findProjectedByTopics_IdAndStatus_Name(topicId, STATUS_APPROVED, PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
+  @Override
+  public List<NewsModel> findPageByTopicAndStatusNames(Long topicId, List<String> statusNames, int page, int size,
+      String sortColumn, String sortDirection) {
+    if (statusNames == null || statusNames.isEmpty()) {
+      return List.of();
+    }
+    Sort sort = getSort(sortColumn, sortDirection);
+    return newsJpaRepository
+        .findProjectedByTopics_IdAndStatus_NameIn(topicId, statusNames, PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
 
   @Override
   public List<NewsModel> findPageByStatusAndTitle(String status, String title, int page, int size, String sortColumn,
@@ -141,6 +174,18 @@ public class NewsRepositoryImpl implements NewsRepository {
     return newsJpaRepository
         .findProjectedByStatus_NameAndTitleContainingIgnoreCase(searchStatus, searchTitle,
             PageRequest.of(page, size, sort))
+        .stream().map(newsMapper::toSummaryModel).toList();
+  }
+  @Override
+  public List<NewsModel> findPageByStatusNamesAndTitle(List<String> statusNames, String title, int page, int size,
+      String sortColumn, String sortDirection) {
+    if (statusNames == null || statusNames.isEmpty()) {
+      return List.of();
+    }
+    String searchTitle = (title == null) ? "" : title.trim();
+    Sort sort = getSort(sortColumn, sortDirection);
+    return newsJpaRepository
+        .findProjectedByStatus_NameInAndTitleContainingIgnoreCase(statusNames, searchTitle, PageRequest.of(page, size, sort))
         .stream().map(newsMapper::toSummaryModel).toList();
   }
 
@@ -168,10 +213,25 @@ public class NewsRepositoryImpl implements NewsRepository {
   public long countByStatus(String status) {
     return newsJpaRepository.countByStatus_Name(status);
   }
+  @Override
+  public long countByStatusNames(List<String> statusNames) {
+    if (statusNames == null || statusNames.isEmpty()) {
+      return 0;
+    }
+    return newsJpaRepository.countByStatus_NameIn(statusNames);
+  }
 
   @Override
   public long countByStatusAndTitle(String status, String title) {
     return newsJpaRepository.countByStatus_NameAndTitleContainingIgnoreCase(status, title);
+  }
+  @Override
+  public long countByStatusNamesAndTitle(List<String> statusNames, String title) {
+    if (statusNames == null || statusNames.isEmpty()) {
+      return 0;
+    }
+    String searchTitle = (title == null) ? "" : title.trim();
+    return newsJpaRepository.countByStatus_NameInAndTitleContainingIgnoreCase(statusNames, searchTitle);
   }
 
   @Override
@@ -182,6 +242,13 @@ public class NewsRepositoryImpl implements NewsRepository {
   @Override
   public long countByFeaturedAndStatus(boolean featured, String status) {
     return newsJpaRepository.countByIsFeaturedAndStatus_Name(featured, status);
+  }
+  @Override
+  public long countByFeaturedAndStatusNames(boolean featured, List<String> statusNames) {
+    if (statusNames == null || statusNames.isEmpty()) {
+      return 0;
+    }
+    return newsJpaRepository.countByIsFeaturedAndStatus_NameIn(featured, statusNames);
   }
 
   @Override
