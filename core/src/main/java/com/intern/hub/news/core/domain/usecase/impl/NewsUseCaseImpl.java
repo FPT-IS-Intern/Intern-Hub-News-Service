@@ -35,6 +35,8 @@ public class NewsUseCaseImpl implements NewsUseCase {
   private static final String STATUS_DRAFT = "DRAFT";
   private static final int TICKET_APPROVAL_MAX_RETRY = 5;
   private static final long TICKET_APPROVAL_RETRY_DELAY_MS = 600L;
+  private static final int RECONCILE_PAGE_SIZE = 200;
+  private static final int RECONCILE_MAX_PAGES = 10;
 
   private final NewsRepository newsRepository;
   private final NewsStatusRepository newsStatusRepository;
@@ -155,31 +157,35 @@ public class NewsUseCaseImpl implements NewsUseCase {
     if (pendingStatusNames.isEmpty()) {
       return;
     }
-
-    List<NewsModel> pendingNews = newsRepository.findPageByStatusNames(
-        pendingStatusNames,
-        0,
-        200,
-        "updated_at",
-        "asc");
-
-    if (pendingNews.isEmpty()) {
-      return;
-    }
-
     int candidateCount = 0;
-    for (NewsModel pendingItem : pendingNews) {
-      if (pendingItem == null || pendingItem.getApprovalTicketId() == null) {
-        continue;
+    int pageProcessed = 0;
+
+    for (int page = 0; page < RECONCILE_MAX_PAGES; page++) {
+      List<NewsModel> pendingNews = newsRepository.findPageByStatusNames(
+          pendingStatusNames,
+          page,
+          RECONCILE_PAGE_SIZE,
+          "updated_at",
+          "desc");
+
+      if (pendingNews.isEmpty()) {
+        break;
       }
-      candidateCount++;
-      Long ticketId = pendingItem.getApprovalTicketId();
-      if (waitForApprovedTicket(ticketId)) {
-        markNewsApprovedByTicketId(ticketId);
+
+      pageProcessed++;
+      for (NewsModel pendingItem : pendingNews) {
+        if (pendingItem == null || pendingItem.getApprovalTicketId() == null) {
+          continue;
+        }
+        candidateCount++;
+        Long ticketId = pendingItem.getApprovalTicketId();
+        if (waitForApprovedTicket(ticketId)) {
+          markNewsApprovedByTicketId(ticketId);
+        }
       }
     }
-    log.info("[News][ReconcilePending] processed {} candidate tickets out of {} pending news", candidateCount,
-        pendingNews.size());
+    log.info("[News][ReconcilePending] processed {} candidate tickets across {} page(s)", candidateCount,
+        pageProcessed);
   }
 
   private void markNewsApprovedByTicketId(Long ticketId) {
