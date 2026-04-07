@@ -16,6 +16,7 @@ public interface NewsUseCase {
   NewsModel approve(Long id);
 
   void approveByTicketId(Long ticketId);
+  void reconcilePendingNewsApprovals();
 
   NewsModel getById(Long id);
 

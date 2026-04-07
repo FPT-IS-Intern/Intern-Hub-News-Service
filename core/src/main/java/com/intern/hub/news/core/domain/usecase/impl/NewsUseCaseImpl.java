@@ -165,6 +165,36 @@ public class NewsUseCaseImpl implements NewsUseCase {
     log.info("[News][ApproveByTicket] Updated news id={} to APPROVED via ticketId={}", existing.getId(), ticketId);
   }
 
+  @Override
+  public void reconcilePendingNewsApprovals() {
+    List<String> pendingStatusNames = getStatusNamesByMode(STATUS_PENDING);
+    if (pendingStatusNames.isEmpty()) {
+      return;
+    }
+
+    List<NewsModel> pendingNews = newsRepository.findPageByStatusNames(
+        pendingStatusNames,
+        0,
+        200,
+        "updated_at",
+        "asc");
+
+    if (pendingNews.isEmpty()) {
+      return;
+    }
+
+    int candidateCount = 0;
+    for (NewsModel pendingItem : pendingNews) {
+      if (pendingItem == null || pendingItem.getApprovalTicketId() == null) {
+        continue;
+      }
+      candidateCount++;
+      approveByTicketId(pendingItem.getApprovalTicketId());
+    }
+    log.info("[News][ReconcilePending] processed {} candidate tickets out of {} pending news", candidateCount,
+        pendingNews.size());
+  }
+
   private boolean waitForApprovedTicket(Long ticketId) {
     for (int attempt = 1; attempt <= TICKET_APPROVAL_MAX_RETRY; attempt++) {
       try {
