@@ -73,7 +73,7 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public boolean isTicketApproved(Long ticketId) {
-        var response = ticketServiceFeignClient.getTicketDetail(ticketId);
+        var response = ticketServiceFeignClient.getTicketDetail(ticketId, internalSecret);
         return response != null
                 && response.data() != null
                 && response.data().ticketDetail() != null
