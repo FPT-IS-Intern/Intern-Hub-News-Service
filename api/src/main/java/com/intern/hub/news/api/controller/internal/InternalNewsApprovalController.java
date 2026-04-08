@@ -22,4 +22,11 @@ public class InternalNewsApprovalController {
     newsUseCase.approveByTicketId(ticketId);
     return ResponseApi.ok("OK");
   }
+
+  @PostMapping("/{ticketId}/rejected")
+  @Internal
+  public ResponseApi<String> rejectByTicketId(@PathVariable Long ticketId) {
+    newsUseCase.rejectByTicketId(ticketId);
+    return ResponseApi.ok("OK");
+  }
 }

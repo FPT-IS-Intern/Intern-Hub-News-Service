@@ -32,6 +32,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   private static final String STATUS_PENDING = "PENDING";
   private static final String STATUS_APPROVED = "APPROVED";
+  private static final String STATUS_REJECT = "REJECT";
   private static final String STATUS_DRAFT = "DRAFT";
   private static final int TICKET_APPROVAL_MAX_RETRY = 5;
   private static final long TICKET_APPROVAL_RETRY_DELAY_MS = 600L;
@@ -148,7 +149,17 @@ public class NewsUseCaseImpl implements NewsUseCase {
       return;
     }
     log.info("[News][ApproveByTicket] Start processing ticketId={}", ticketId);
-    markNewsApprovedByTicketId(ticketId);
+    markNewsByTicketId(ticketId, STATUS_APPROVED);
+  }
+
+  @Override
+  public void rejectByTicketId(Long ticketId) {
+    if (ticketId == null) {
+      log.warn("[News][RejectByTicket] Skip because ticketId is null");
+      return;
+    }
+    log.info("[News][RejectByTicket] Start processing ticketId={}", ticketId);
+    markNewsByTicketId(ticketId, STATUS_REJECT);
   }
 
   @Override
@@ -180,7 +191,7 @@ public class NewsUseCaseImpl implements NewsUseCase {
         candidateCount++;
         Long ticketId = pendingItem.getApprovalTicketId();
         if (waitForApprovedTicket(ticketId)) {
-          markNewsApprovedByTicketId(ticketId);
+          markNewsByTicketId(ticketId, STATUS_APPROVED);
         }
       }
     }
@@ -188,20 +199,22 @@ public class NewsUseCaseImpl implements NewsUseCase {
         pageProcessed);
   }
 
-  private void markNewsApprovedByTicketId(Long ticketId) {
+  private void markNewsByTicketId(Long ticketId, String targetStatus) {
     NewsModel existing = newsRepository.findByApprovalTicketId(ticketId).orElse(null);
     if (existing == null) {
-      log.warn("[News][ApproveByTicket] No news found with approvalTicketId={}", ticketId);
+      log.warn("[News][TicketStatusSync] No news found with approvalTicketId={}", ticketId);
       return;
     }
-    if (existing.getStatus() != null && STATUS_APPROVED.equalsIgnoreCase(existing.getStatus())) {
-      log.info("[News][ApproveByTicket] News id={} already approved. Skip update.", existing.getId());
+
+    if (existing.getStatus() != null && targetStatus.equalsIgnoreCase(toStatusKey(existing.getStatus()))) {
+      log.info("[News][TicketStatusSync] News id={} already in status {}. Skip update.", existing.getId(), targetStatus);
       return;
     }
-    existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
+
+    existing.setStatusId(getStatusIdByName(targetStatus));
     existing.setUpdatedAt(System.currentTimeMillis());
     newsRepository.update(existing);
-    log.info("[News][ApproveByTicket] Updated news id={} to APPROVED via ticketId={}", existing.getId(), ticketId);
+    log.info("[News][TicketStatusSync] Updated news id={} to {} via ticketId={}", existing.getId(), targetStatus, ticketId);
   }
 
   private boolean waitForApprovedTicket(Long ticketId) {
@@ -403,6 +416,12 @@ public class NewsUseCaseImpl implements NewsUseCase {
         || "DA DUYET".equals(normalized)
         || "QUYET DINH DANG".equals(normalized)) {
       return STATUS_APPROVED;
+    }
+
+    if ("REJECT".equals(normalized)
+        || "REJECTED".equals(normalized)
+        || "TU CHOI".equals(normalized)) {
+      return STATUS_REJECT;
     }
 
     if ("DRAFT".equals(normalized)

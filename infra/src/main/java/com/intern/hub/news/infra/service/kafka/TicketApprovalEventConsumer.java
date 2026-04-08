@@ -17,6 +17,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TicketApprovalEventConsumer {
 
+    private static final String STATUS_APPROVED = "APPROVED";
+    private static final String STATUS_REJECTED = "REJECTED";
+
     private final ObjectMapper objectMapper;
     private final NewsUseCase newsUseCase;
 
@@ -34,18 +37,23 @@ public class TicketApprovalEventConsumer {
             log.info("[News][Kafka] Received ticket event message: {}", message);
             Map<String, Object> event = parseEvent(message);
             Long ticketId = extractLong(event.get("ticketId"));
+            String status = extractStatus(event.get("status"));
             Long approverId = extractLong(event.get("approverId"));
             if (ticketId == null) {
                 log.warn("[News][Kafka] Skip event because ticketId is missing. Parsed event: {}", event);
                 return;
             }
-            if (approverId == null) {
-                log.debug("[News][Kafka] Skip non-approval event for ticketId={} (approverId missing)", ticketId);
+            if (STATUS_REJECTED.equals(status)) {
+                log.info("[News][Kafka] Processing ticket rejected event for ticketId={}", ticketId);
+                newsUseCase.rejectByTicketId(ticketId);
                 return;
             }
-            log.info("[News][Kafka] Processing ticket approval event for ticketId={}", ticketId);
-            newsUseCase.approveByTicketId(ticketId);
-            log.info("[News][Kafka] Finished processing event for ticketId={}", ticketId);
+            if (STATUS_APPROVED.equals(status) || approverId != null) {
+                log.info("[News][Kafka] Processing ticket approval event for ticketId={}", ticketId);
+                newsUseCase.approveByTicketId(ticketId);
+                return;
+            }
+            log.debug("[News][Kafka] Skip event for ticketId={} because status/approver not eligible. event={}", ticketId, event);
         } catch (Exception ex) {
             log.error("[News] Failed to process ticket event: {}", message, ex);
         }
@@ -63,6 +71,13 @@ public class TicketApprovalEventConsumer {
         } catch (NumberFormatException ex) {
             return null;
         }
+    }
+
+    private String extractStatus(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return String.valueOf(value).trim().toUpperCase();
     }
 
     private Map<String, Object> parseEvent(String message) throws Exception {
