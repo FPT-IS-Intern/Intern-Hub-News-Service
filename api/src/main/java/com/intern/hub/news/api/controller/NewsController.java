@@ -7,6 +7,7 @@ import com.intern.hub.news.api.dto.response.NewsResponse;
 import com.intern.hub.news.api.mapper.NewsMapper;
 import com.intern.hub.news.api.dto.request.SearchNewsRequest;
 import com.intern.hub.news.core.domain.model.NewsModel;
+import com.intern.hub.news.core.domain.port.UserProfilePort;
 import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +21,13 @@ public class NewsController {
 
   private final NewsUseCase newsUseCase;
   private final NewsMapper newsMapper;
+  private final UserProfilePort userProfilePort;
 
   @GetMapping("/{id:[0-9]+}")
   public ResponseApi<NewsResponse> getById(@PathVariable Long id) {
-    return ResponseApi.ok(newsMapper.toResponse(newsUseCase.getById(id)));
+    NewsResponse response = newsMapper.toResponse(newsUseCase.getById(id));
+    enrichCreatedByName(response);
+    return ResponseApi.ok(response);
   }
 
   @GetMapping("/isFeatured")
@@ -99,5 +103,16 @@ public class NewsController {
           return brief;
         }).toList();
     return ResponseApi.ok(featured);
+  }
+
+  private void enrichCreatedByName(NewsResponse response) {
+    if (response == null || response.getCreatedBy() == null) {
+      return;
+    }
+
+    String fullName = userProfilePort.getFullNameByUserId(response.getCreatedBy());
+    if (fullName != null && !fullName.isBlank()) {
+      response.setCreatedByName(fullName);
+    }
   }
 }

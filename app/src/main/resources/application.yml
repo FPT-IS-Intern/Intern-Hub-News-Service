@@ -75,6 +75,10 @@ services:
   gateway:
     url: ${GATEWAY_URL:http://localhost:8765}
 
+service:
+  hrm:
+    url: ${HRM_SERVICE_URL:${services.gateway.url}/api}
+
 ticket:
   service:
     internal-url: ${TICKET_SERVICE_INTERNAL_URL:http://localhost:8081}

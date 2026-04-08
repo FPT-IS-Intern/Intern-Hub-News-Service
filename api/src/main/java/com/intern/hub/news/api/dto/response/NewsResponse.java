@@ -25,4 +25,5 @@ public class NewsResponse {
   private Long createdAt;
   private Long updatedAt;
   private Long createdBy;
+  private String createdByName;
 }
