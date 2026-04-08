@@ -7,4 +7,6 @@ public interface TicketService {
     Long createTicket(CreateTicketCommand command);
 
     boolean isTicketApproved(Long ticketId);
+
+    String getTicketSenderFullName(Long ticketId);
 }

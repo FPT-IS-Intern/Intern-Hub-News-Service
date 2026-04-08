@@ -104,6 +104,47 @@ public class TicketServiceImpl implements TicketService {
         }
     }
 
+    @Override
+    public String getTicketSenderFullName(Long ticketId) {
+        if (ticketId == null) {
+            return null;
+        }
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Secret", internalSecret);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    buildTicketDetailUrl(ticketId),
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    String.class);
+
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.isBlank()) {
+                return null;
+            }
+
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode dataNode = root.path("data");
+            if (dataNode.isMissingNode() || dataNode.isNull()) {
+                return null;
+            }
+
+            JsonNode fullNameNode = dataNode.path("fullName");
+            if (!fullNameNode.isMissingNode() && !fullNameNode.isNull()) {
+                String fullName = fullNameNode.asText();
+                if (!fullName.isBlank()) {
+                    return fullName;
+                }
+            }
+
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private String buildCreateTicketUrl() {
         String baseUrl = ticketInternalBaseUrl == null ? "" : ticketInternalBaseUrl.trim();
         while (baseUrl.endsWith("/")) {

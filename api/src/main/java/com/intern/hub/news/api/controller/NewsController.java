@@ -7,6 +7,7 @@ import com.intern.hub.news.api.dto.response.NewsResponse;
 import com.intern.hub.news.api.mapper.NewsMapper;
 import com.intern.hub.news.api.dto.request.SearchNewsRequest;
 import com.intern.hub.news.core.domain.model.NewsModel;
+import com.intern.hub.news.core.domain.port.TicketService;
 import com.intern.hub.news.core.domain.port.UserProfilePort;
 import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +23,13 @@ public class NewsController {
   private final NewsUseCase newsUseCase;
   private final NewsMapper newsMapper;
   private final UserProfilePort userProfilePort;
+  private final TicketService ticketService;
 
   @GetMapping("/{id:[0-9]+}")
   public ResponseApi<NewsResponse> getById(@PathVariable Long id) {
-    NewsResponse response = newsMapper.toResponse(newsUseCase.getById(id));
-    enrichCreatedByName(response);
+    NewsModel model = newsUseCase.getById(id);
+    NewsResponse response = newsMapper.toResponse(model);
+    enrichCreatedByName(response, model);
     return ResponseApi.ok(response);
   }
 
@@ -105,12 +108,21 @@ public class NewsController {
     return ResponseApi.ok(featured);
   }
 
-  private void enrichCreatedByName(NewsResponse response) {
-    if (response == null || response.getCreatedBy() == null) {
+  private void enrichCreatedByName(NewsResponse response, NewsModel model) {
+    if (response == null) {
       return;
     }
 
-    String fullName = userProfilePort.getFullNameByUserId(response.getCreatedBy());
+    Long createdBy = response.getCreatedBy();
+    if (createdBy == null && model != null) {
+      createdBy = model.getCreatedBy();
+    }
+
+    String fullName = userProfilePort.getFullNameByUserId(createdBy);
+    if ((fullName == null || fullName.isBlank()) && model != null && model.getApprovalTicketId() != null) {
+      fullName = ticketService.getTicketSenderFullName(model.getApprovalTicketId());
+    }
+
     if (fullName != null && !fullName.isBlank()) {
       response.setCreatedByName(fullName);
     }
