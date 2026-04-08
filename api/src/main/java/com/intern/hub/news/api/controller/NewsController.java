@@ -2,6 +2,7 @@ package com.intern.hub.news.api.controller;
 
 import com.intern.hub.library.common.dto.PaginatedData;
 import com.intern.hub.library.common.dto.ResponseApi;
+import com.intern.hub.news.api.dto.response.HomepageBannerResponse;
 import com.intern.hub.news.api.dto.response.NewsBriefResponse;
 import com.intern.hub.news.api.dto.response.NewsResponse;
 import com.intern.hub.news.api.mapper.NewsMapper;
@@ -13,12 +14,16 @@ import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/news")
 public class NewsController {
+
+  private static final String ACTION_TYPE_NEWS_DETAIL = "NEWS_DETAIL";
 
   private final NewsUseCase newsUseCase;
   private final NewsMapper newsMapper;
@@ -106,6 +111,31 @@ public class NewsController {
           return brief;
         }).toList();
     return ResponseApi.ok(featured);
+  }
+
+  @GetMapping("/banners")
+  public ResponseApi<List<HomepageBannerResponse>> getActiveBanners(
+      @RequestParam(name = "total", defaultValue = "5") int total) {
+    int safeTotal = Math.max(1, total);
+    Collection<NewsModel> featuredNews = newsUseCase.getAllNewsIsFeatured(0, safeTotal, "updated_at", "desc")
+        .getItems();
+    AtomicInteger order = new AtomicInteger(1);
+    List<HomepageBannerResponse> responses = featuredNews.stream()
+        .map(news -> HomepageBannerResponse.builder()
+            .id(news.getId())
+            .title(news.getTitle())
+            .description(news.getShortDescription())
+            .displayOrder(order.getAndIncrement())
+            .isActive(Boolean.TRUE)
+            .desktopImageUrl(news.getThumbnail())
+            .mobileImageUrl(news.getThumbnail())
+            .imageAltText(news.getTitle())
+            .actionType(ACTION_TYPE_NEWS_DETAIL)
+            .actionTarget("/news/" + news.getId())
+            .openInNewTab(Boolean.FALSE)
+            .build())
+        .toList();
+    return ResponseApi.ok(responses);
   }
 
   private void enrichCreatedByName(NewsResponse response, NewsModel model) {
