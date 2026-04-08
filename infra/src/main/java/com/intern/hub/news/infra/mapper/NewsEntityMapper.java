@@ -48,6 +48,8 @@ public class NewsEntityMapper {
         ? entity.getTopics().stream().map(topicMapper::toModel).toList()
         : new java.util.ArrayList<>());
     newsModel.setStatus(entity.getStatus() != null ? entity.getStatus().getName() : null);
+    newsModel.setCreatedBy(entity.getCreatedBy());
+    newsModel.setUpdatedBy(entity.getUpdatedBy());
     newsModel.setApprovalTicketId(entity.getApprovalTicketId());
 
     return newsModel;
@@ -76,6 +78,8 @@ public class NewsEntityMapper {
     entity.setStatus(status);
     entity.setTopics(topics);
     entity.setFeatured(model.isFeatured());
+    entity.setCreatedBy(model.getCreatedBy());
+    entity.setUpdatedBy(model.getUpdatedBy());
     entity.setApprovalTicketId(model.getApprovalTicketId());
     return entity;
   }
