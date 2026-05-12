@@ -46,6 +46,12 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public NewsModel create(CreateNewsCommand command) {
+    int topicCount = command.getTopicIds() == null ? 0 : command.getTopicIds().size();
+    log.info("Core - Create news request: userId={}, topicCount={}, hasStatusId={}, featured={}",
+        command.getUserId(),
+        topicCount,
+        command.getStatusId() != null,
+        command.getFeatured());
     try {
       validateInput(command.getTitle(), command.getBody(), command.getShortDescription());
       long now = System.currentTimeMillis();
@@ -79,7 +85,10 @@ public class NewsUseCaseImpl implements NewsUseCase {
         newsRepository.updateApprovalTicketId(saved.getId(), ticketId, System.currentTimeMillis());
         saved.setApprovalTicketId(ticketId);
       }
-      log.info("[News] Create New Successfully: {}", saved.getId());
+        log.info("Core - Create news response: newsId={}, statusId={}, approvalTicketId={}",
+          saved.getId(),
+          saved.getStatusId(),
+          saved.getApprovalTicketId());
       return saved;
     } catch (IllegalArgumentException e) {
       throw e;
@@ -92,6 +101,12 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public NewsModel update(Long id, UpdateNewsCommand command) {
+    int topicCount = command.getTopicIds() == null ? 0 : command.getTopicIds().size();
+    log.info("Core - Update news request: newsId={}, topicCount={}, hasStatusId={}, featured={}",
+        id,
+        topicCount,
+        command.getStatusId() != null,
+        command.getFeatured());
     try {
       validateInput(command.getTitle(), command.getBody(), command.getShortDescription());
       NewsModel existing = getById(id);
@@ -116,7 +131,9 @@ public class NewsUseCaseImpl implements NewsUseCase {
         existing.setStatusId(getStatusIdByName(STATUS_PENDING));
       }
       existing.setUpdatedAt(System.currentTimeMillis());
-      return newsRepository.update(existing);
+      NewsModel response = newsRepository.update(existing);
+      log.info("Core - Update news response: newsId={}, statusId={}", id, response.getStatusId());
+      return response;
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
@@ -129,11 +146,14 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public NewsModel approve(Long id) {
+    log.info("Core - Approve news request: newsId={}", id);
     try {
       NewsModel existing = getById(id);
       existing.setStatusId(getStatusIdByName(STATUS_APPROVED));
       existing.setUpdatedAt(System.currentTimeMillis());
-      return newsRepository.update(existing);
+      NewsModel response = newsRepository.update(existing);
+      log.info("Core - Approve news response: newsId={}, statusId={}", id, response.getStatusId());
+      return response;
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {
@@ -267,9 +287,15 @@ public class NewsUseCaseImpl implements NewsUseCase {
   @Override
   public PaginatedData<NewsModel> findPageByDateRange(long start, long end, int page, int size, String sortColumn,
       String sortDirection) {
+    log.info("Core - Find page by date range request: start={}, end={}, page={}, size={}, sortColumn={}, sortDirection={}",
+        start, end, page, size, sortColumn, sortDirection);
     List<NewsModel> items = newsRepository.findPageByDateRange(start, end, page, size, sortColumn, sortDirection);
     long total = newsRepository.countByDateRange(start, end);
-    return new PaginatedData<>(items, (int) total, size);
+    PaginatedData<NewsModel> response = new PaginatedData<>(items, (int) total, size);
+    log.info("Core - Find page by date range response: totalItems={}, totalPages={}",
+        response.getTotalItems(),
+        response.getTotalPages());
+    return response;
   }
 
   @Override
@@ -306,11 +332,17 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public PaginatedData<NewsModel> getPendingNews(int page, int size, String sortColumn, String sortDirection) {
+    log.info("Core - Get pending news request: page={}, size={}, sortColumn={}, sortDirection={}",
+      page, size, sortColumn, sortDirection);
     List<String> pendingStatusNames = getStatusNamesByMode(STATUS_PENDING);
     List<NewsModel> items = newsRepository.findPageByStatusNames(pendingStatusNames, page, size, sortColumn,
         sortDirection);
     long total = newsRepository.countByStatusNames(pendingStatusNames);
-    return new PaginatedData<>(items, (int) total, size);
+    PaginatedData<NewsModel> response = new PaginatedData<>(items, (int) total, size);
+    log.info("Core - Get pending news response: totalItems={}, totalPages={}",
+      response.getTotalItems(),
+      response.getTotalPages());
+    return response;
   }
 
   @Override
@@ -359,11 +391,13 @@ public class NewsUseCaseImpl implements NewsUseCase {
 
   @Override
   public void delete(Long id) {
+    log.info("Core - Delete news request: newsId={}", id);
     try {
       if (!newsRepository.existsById(id)) {
         throw new IllegalArgumentException("News not found with id: " + id);
       }
       newsRepository.deleteById(id);
+      log.info("Core - Delete news response: newsId={}, result=success", id);
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception _) {
