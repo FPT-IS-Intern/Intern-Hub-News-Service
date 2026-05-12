@@ -7,6 +7,7 @@ import com.intern.hub.news.api.mapper.NewsMapper;
 import com.intern.hub.news.core.domain.model.NewsModel;
 import com.intern.hub.news.core.domain.usecase.NewsUseCase;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/news/management")
+@Slf4j
 public class NewsManagementController {
 
     private final NewsUseCase newsUsecase;
@@ -27,6 +29,8 @@ public class NewsManagementController {
             @RequestParam(required = false) Long endDate,
             @RequestParam(defaultValue = "created_at") String sortColumn,
             @RequestParam(defaultValue = "desc") String sortDirection) {
+        log.info("API - Get all news request: page={}, size={}, startDate={}, endDate={}, sortColumn={}, sortDirection={}",
+                page, size, startDate, endDate, sortColumn, sortDirection);
 
         long start = startDate != null ? startDate : 0L;
         long end = endDate != null ? endDate : Long.MAX_VALUE;
@@ -36,6 +40,7 @@ public class NewsManagementController {
         List<NewsResponse> items = pageData.getItems().stream()
                 .map(newsMapper::toSummaryResponse).toList();
         PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
+        log.info("API - Get all news response: totalItems={}, totalPages={}", paginatedData.getTotalItems(), paginatedData.getTotalPages());
         return ResponseApi.ok(paginatedData);
     }
 
@@ -45,22 +50,30 @@ public class NewsManagementController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "created_at") String sortColumn,
             @RequestParam(defaultValue = "desc") String sortDirection) {
+            log.info("API - Get pending news request: page={}, size={}, sortColumn={}, sortDirection={}",
+                page, size, sortColumn, sortDirection);
         PaginatedData<NewsModel> pageData = newsUsecase.getPendingNews(page, size, sortColumn, sortDirection);
         List<NewsResponse> items = pageData.getItems().stream()
                 .map(newsMapper::toSummaryResponse).toList();
         PaginatedData<NewsResponse> paginatedData = new PaginatedData<>(items, pageData.getTotalItems(), size);
+            log.info("API - Get pending news response: totalItems={}, totalPages={}", paginatedData.getTotalItems(), paginatedData.getTotalPages());
         return ResponseApi.ok(paginatedData);
     }
 
     @PostMapping("/{id}/approve")
     public ResponseApi<NewsResponse> approve(@PathVariable Long id) {
+        log.info("API - Approve news request: newsId={}", id);
         NewsModel approvedModel = newsUsecase.approve(id);
-        return ResponseApi.ok(newsMapper.toResponse(approvedModel));
+        NewsResponse response = newsMapper.toResponse(approvedModel);
+        log.info("API - Approve news response: newsId={}, status={}", id, approvedModel.getStatusId());
+        return ResponseApi.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseApi<String> delete(@PathVariable Long id) {
+        log.info("API - Delete news request: newsId={}", id);
         newsUsecase.delete(id);
+        log.info("API - Delete news response: newsId={}, result=success", id);
         return ResponseApi.ok("Delete Successfully");
     }
 }
