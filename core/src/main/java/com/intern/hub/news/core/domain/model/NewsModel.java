@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
-@Setter
+import lombok.Data;
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class NewsModel {
