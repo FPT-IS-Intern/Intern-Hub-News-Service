@@ -11,6 +11,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateNewsCommand {
+    private Long userId;
+
     private String title;
 
     private String body;

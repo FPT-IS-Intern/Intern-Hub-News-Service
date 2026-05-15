@@ -125,14 +125,25 @@ public class NewsUseCaseImpl implements NewsUseCase {
       existing.setFeatured(command.getFeatured() != null && command.getFeatured());
 
       // Use the provided status if available, else force pending
-      if (command.getStatusId() != null) {
-        existing.setStatusId(command.getStatusId());
-      } else {
-        existing.setStatusId(getStatusIdByName(STATUS_PENDING));
+      Long pendingStatusId = getStatusIdByName(STATUS_PENDING);
+      Long statusId = command.getStatusId();
+      if (statusId == null) {
+        statusId = pendingStatusId;
       }
+      existing.setStatusId(statusId);
       existing.setUpdatedAt(System.currentTimeMillis());
+
       NewsModel response = newsRepository.update(existing);
-      log.info("Core - Update news response: newsId={}, statusId={}", id, response.getStatusId());
+
+      if (pendingStatusId.equals(statusId)) {
+        log.info("Core - Creating approval ticket for updated news: newsId={}", id);
+        Long ticketId = createApprovalTicket(response, command.getUserId());
+        newsRepository.updateApprovalTicketId(response.getId(), ticketId, System.currentTimeMillis());
+        response.setApprovalTicketId(ticketId);
+      }
+
+      log.info("Core - Update news response: newsId={}, statusId={}, approvalTicketId={}",
+          id, response.getStatusId(), response.getApprovalTicketId());
       return response;
     } catch (IllegalArgumentException e) {
       throw e;
@@ -497,6 +508,37 @@ public class NewsUseCaseImpl implements NewsUseCase {
     }
   }
 
+  private Long createApprovalTicket(NewsModel news, Long userId) {
+    try {
+      Long ticketId = ticketService.createTicket(new CreateTicketCommand(
+          userId,
+          newsTicketTypeId,
+          buildNewsTicketPayload(news)));
+      if (ticketId == null) {
+        throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
+            "Failed to create approval ticket for news: ticketId is null");
+      }
+      return ticketId;
+    } catch (Exception ex) {
+      log.error("[News] Failed to create approval ticket: {}", ex.getMessage());
+      if (ex instanceof BadRequestException) {
+        throw (BadRequestException) ex;
+      }
+      throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
+          "Failed to create approval ticket: " + ex.getMessage());
+    }
+  }
+
+  private Long createApprovalTicketOrRollback(NewsModel saved, Long userId) {
+    try {
+      return createApprovalTicket(saved, userId);
+    } catch (Exception ex) {
+      log.warn("[News] Rolling back news creation due to ticket failure: newsId={}", saved.getId());
+      newsRepository.deleteById(saved.getId());
+      throw ex;
+    }
+  }
+
   private Map<String, Object> buildNewsTicketPayload(NewsModel news) {
     Map<String, Object> payload = new HashMap<>();
     payload.put("news_id", String.valueOf(news.getId()));
@@ -524,27 +566,6 @@ public class NewsUseCaseImpl implements NewsUseCase {
     payload.put("image_urls", imageUrls);
 
     return payload;
-  }
-
-  private Long createApprovalTicketOrRollback(NewsModel saved, Long userId) {
-    Long ticketId;
-    try {
-      ticketId = ticketService.createTicket(new CreateTicketCommand(
-          userId,
-          newsTicketTypeId,
-          buildNewsTicketPayload(saved)));
-    } catch (Exception ex) {
-      newsRepository.deleteById(saved.getId());
-      throw ex;
-    }
-
-    if (ticketId == null) {
-      newsRepository.deleteById(saved.getId());
-      throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE,
-          "Failed to create approval ticket for news");
-    }
-
-    return ticketId;
   }
 }
 

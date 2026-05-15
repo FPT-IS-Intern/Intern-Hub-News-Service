@@ -36,6 +36,7 @@ public class NewsAuthorController {
     @PutMapping("/{id}")
     public ResponseApi<NewsResponse> update(@PathVariable Long id, @RequestBody @Valid UpdateNewsRequest request) {
         UpdateNewsCommand command = new UpdateNewsCommand();
+        command.setUserId(resolveUserId(null));
         command.setTitle(request.getTitle());
         command.setBody(request.getBody());
         command.setShortDescription(request.getShortDescription());
@@ -59,12 +60,12 @@ public class NewsAuthorController {
             // Ignore auth context resolution errors and fallback to request payload userId.
         }
 
-        if (userId == null) {
+        if (userId == null && request != null) {
             userId = request.getUserId();
         }
 
         if (userId == null) {
-            throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "creatorId is required");
+            throw new BadRequestException(ExceptionConstant.BAD_REQUEST_DEFAULT_CODE, "userId is required");
         }
 
         return userId;
